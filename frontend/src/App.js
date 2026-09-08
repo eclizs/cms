@@ -14,6 +14,7 @@ import { TrashDialog } from "@/components/TrashDialog";
 import { DailyLimitDialog } from "@/components/DailyLimitDialog";
 import { TransactionDialog } from "@/components/TransactionDialog";
 import { SupplierManager } from "@/components/SupplierManager";
+import { SenderManager } from "@/components/SenderManager";
 import { DayDetailDialog } from "@/components/DayDetailDialog";
 
 function App() {
@@ -32,6 +33,7 @@ function App() {
   const [txDefaultDate, setTxDefaultDate] = useState("");
   const [limitOpen, setLimitOpen] = useState(false);
   const [supplierOpen, setSupplierOpen] = useState(false);
+  const [senderMgrOpen, setSenderMgrOpen] = useState(false);
   const [trash, setTrash] = useState([]);
   const [trashOpen, setTrashOpen] = useState(false);
 
@@ -191,6 +193,16 @@ function App() {
     }
   };
 
+  const handleDeleteSender = async (id) => {
+    try {
+      await api.deleteSenderAccount(id);
+      setSenders(await api.getSenderAccounts());
+      toast.success("Rekening pengirim dihapus");
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || "Gagal menghapus rekening pengirim");
+    }
+  };
+
   return (
     <div className="App min-h-screen bg-background bg-grid">
       <Header
@@ -259,6 +271,7 @@ function App() {
         onSubmit={handleSubmitTx}
         onManageSuppliers={() => setSupplierOpen(true)}
         onCreateSender={handleCreateSender}
+        onManageSenders={() => setSenderMgrOpen(true)}
       />
       <DailyLimitDialog open={limitOpen} onOpenChange={setLimitOpen} currentLimit={dailyLimit} onSave={handleSaveLimit} />      <SupplierManager
         open={supplierOpen}
@@ -275,6 +288,14 @@ function App() {
         trash={trash}
         onRestore={handleRestoreTx}
         onPurge={handlePurgeTx}
+      />
+
+      <SenderManager
+        open={senderMgrOpen}
+        onOpenChange={setSenderMgrOpen}
+        senders={senders}
+        onCreate={handleCreateSender}
+        onDelete={handleDeleteSender}
       />
 
       <Toaster position="top-right" richColors />

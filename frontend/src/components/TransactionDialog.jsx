@@ -5,10 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { UserPlus, AlertTriangle, CheckCircle2, Plus, X } from "lucide-react";
+import { UserPlus, AlertTriangle, CheckCircle2, Plus, X, Settings2 } from "lucide-react";
 import { formatRupiah, formatCompact, terbilang, getDayStatus } from "@/lib/format";
 
-export const TransactionDialog = ({ open, onOpenChange, suppliers, senders, editing, dailyTotals, dailyLimit, recommendations, defaultDate, onSubmit, onManageSuppliers, onCreateSender }) => {
+export const TransactionDialog = ({ open, onOpenChange, suppliers, senders, editing, dailyTotals, dailyLimit, recommendations, defaultDate, onSubmit, onManageSuppliers, onCreateSender, onManageSenders }) => {
   const [supplierId, setSupplierId] = useState("");
   const [senderId, setSenderId] = useState("");
   const [amount, setAmount] = useState(0);
@@ -98,9 +98,14 @@ export const TransactionDialog = ({ open, onOpenChange, suppliers, senders, edit
             <div className="flex items-center justify-between">
               <Label>Rekening Pengirim</Label>
               {!addingSender && (
-                <Button variant="ghost" size="sm" className="h-7 text-xs text-primary gap-1" data-testid="add-sender-button" onClick={() => setAddingSender(true)}>
-                  <Plus className="h-3.5 w-3.5" /> Rekening Baru
-                </Button>
+                <div className="flex items-center gap-1">
+                  <Button variant="ghost" size="sm" className="h-7 text-xs text-primary gap-1" data-testid="add-sender-button" onClick={() => setAddingSender(true)}>
+                    <Plus className="h-3.5 w-3.5" /> Rekening Baru
+                  </Button>
+                  <Button variant="ghost" size="sm" className="h-7 text-xs text-muted-foreground gap-1" data-testid="manage-senders-button" onClick={onManageSenders}>
+                    <Settings2 className="h-3.5 w-3.5" /> Kelola
+                  </Button>
+                </div>
               )}
             </div>
             {addingSender ? (
