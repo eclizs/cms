@@ -73,9 +73,26 @@ function App() {
     });
   }, [transactions, month]);
 
-  const openNewTransaction = (date = "") => {
+  const openNewTransaction = async (date = "") => {
+    try {
+      const [s, snd] = await Promise.all([api.getSuppliers(), api.getSenderAccounts()]);
+      setSuppliers(s);
+      setSenders(snd);
+    } catch (e) { /* keep existing lists on failure */ }
     setEditingTx(null);
     setTxDefaultDate(date);
+    setDayDetailOpen(false);
+    setTxOpen(true);
+  };
+
+  const openEditTransaction = async (t) => {
+    try {
+      const [s, snd] = await Promise.all([api.getSuppliers(), api.getSenderAccounts()]);
+      setSuppliers(s);
+      setSenders(snd);
+    } catch (e) { /* keep existing lists on failure */ }
+    setEditingTx(t);
+    setTxDefaultDate("");
     setDayDetailOpen(false);
     setTxOpen(true);
   };
@@ -206,7 +223,7 @@ function App() {
           <div className="lg:col-span-4 space-y-6">
             <TransactionHistory
               transactions={transactions}
-              onEdit={(t) => { setEditingTx(t); setTxDefaultDate(""); setTxOpen(true); }}
+              onEdit={openEditTransaction}
               onDelete={handleDeleteTx}
               onOpenTrash={() => setTrashOpen(true)}
               trashCount={trash.length}
@@ -222,7 +239,7 @@ function App() {
         transactions={transactions}
         dailyLimit={dailyLimit}
         onAdd={openNewTransaction}
-        onEdit={(t) => { setEditingTx(t); setTxDefaultDate(""); setDayDetailOpen(false); setTxOpen(true); }}
+        onEdit={openEditTransaction}
         onDelete={handleDeleteTx}
       />
 

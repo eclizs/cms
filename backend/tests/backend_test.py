@@ -4,7 +4,7 @@ import pytest
 import requests
 from datetime import date, timedelta
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://banking-journal.preview.emergentagent.com').rstrip('/')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://banking-journal.preview.emergentagent.com').rstrip('/')  # noqa
 API = f"{BASE_URL}/api"
 
 
@@ -125,8 +125,9 @@ class TestTransactions:
         r = session.delete(f"{API}/transactions/{tid}")
         assert r.status_code == 200
 
-        r = session.put(f"{API}/transactions/{tid}", json={"supplier_id": sid, "amount": 1, "date": d})
-        assert r.status_code == 404
+        # After soft-delete tx should not appear in GET /transactions
+        listed = session.get(f"{API}/transactions").json()
+        assert not any(t["id"] == tid for t in listed)
 
 
 # ---------- Settings ----------
@@ -165,3 +166,88 @@ class TestRecommendations:
             assert s["remaining"] == max(limit - s["total"], 0)
             assert s["total"] >= prev_total
             prev_total = s["total"]
+
+
+# ---------- Sender Accounts ----------
+class TestSenderAccounts:
+    def test_list_seeded(self, session):
+        r = session.get(f"{API}/sender-accounts")
+        assert r.status_code == 200
+        data = r.json()
+        assert isinstance(data, list)
+        assert len(data) >= 2
+        for s in data:
+            assert "_id" not in s
+            assert "id" in s and "name" in s and "account_number" in s
+
+    def test_crud_and_denorm_sync(self, session):
+        r = session.post(f"{API}/sender-accounts", json={"name": "TEST_Sender", "account_number": "12345"})
+        assert r.status_code == 200
+        sid = r.json()["id"]
+
+        # create supplier + tx using this sender
+        sr = session.post(f"{API}/suppliers", json={"name": "TEST_SupSnd", "bank": "BCA", "account_number": "1"})
+        sup_id = sr.json()["id"]
+        d = date.today().isoformat()
+        rt = session.post(f"{API}/transactions", json={"supplier_id": sup_id, "sender_id": sid, "amount": 5000, "date": d})
+        assert rt.status_code == 200
+        tx = rt.json()
+        assert tx["sender_id"] == sid
+        assert tx["sender_name"] == "TEST_Sender"
+        assert tx["sender_account"] == "12345"
+        tid = tx["id"]
+
+        # Update sender - denormalized fields should sync
+        session.put(f"{API}/sender-accounts/{sid}", json={"name": "TEST_Sender2", "account_number": "67890"})
+        txs = session.get(f"{API}/transactions").json()
+        t2 = next(t for t in txs if t["id"] == tid)
+        assert t2["sender_name"] == "TEST_Sender2"
+        assert t2["sender_account"] == "67890"
+
+        # Invalid sender_id on new tx -> 404
+        rbad = session.post(f"{API}/transactions", json={"supplier_id": sup_id, "sender_id": "nonexistent", "amount": 1, "date": d})
+        assert rbad.status_code == 404
+        assert "Rekening pengirim" in rbad.json().get("detail", "")
+
+        # Cleanup
+        session.delete(f"{API}/transactions/{tid}")
+        session.delete(f"{API}/sender-accounts/{sid}")
+        session.delete(f"{API}/suppliers/{sup_id}")
+
+
+# ---------- Bug regression: existing supplier + sender submission works ----------
+class TestSupplierNotFoundBugRegression:
+    def test_existing_supplier_and_sender_submit_200(self, session):
+        suppliers = session.get(f"{API}/suppliers").json()
+        senders = session.get(f"{API}/sender-accounts").json()
+        assert suppliers and senders
+        sup = suppliers[0]
+        snd = senders[0]
+        d = date.today().isoformat()
+        r = session.post(f"{API}/transactions", json={
+            "supplier_id": sup["id"], "sender_id": snd["id"], "amount": 1_000_000, "date": d, "note": "TEST_regress"
+        })
+        assert r.status_code == 200, r.text
+        tx = r.json()
+        assert tx["supplier_name"] == sup["name"]
+        assert tx["sender_name"] == snd["name"]
+        session.delete(f"{API}/transactions/{tx['id']}")
+
+    def test_inline_created_sender_then_submit(self, session):
+        # Emulate inline sender-add flow: POST sender then POST transaction with returned id
+        suppliers = session.get(f"{API}/suppliers").json()
+        sup = suppliers[0]
+        sr = session.post(f"{API}/sender-accounts", json={"name": "TEST_Inline_Sender", "account_number": "5551234"})
+        assert sr.status_code == 200
+        new_sid = sr.json()["id"]
+
+        d = date.today().isoformat()
+        r = session.post(f"{API}/transactions", json={
+            "supplier_id": sup["id"], "sender_id": new_sid, "amount": 500_000, "date": d, "note": "TEST_inline"
+        })
+        assert r.status_code == 200, r.text
+        tid = r.json()["id"]
+
+        session.delete(f"{API}/transactions/{tid}")
+        session.delete(f"{API}/sender-accounts/{new_sid}")
+

@@ -36,7 +36,7 @@ export const TransactionDialog = ({ open, onOpenChange, suppliers, senders, edit
       setTxDate(defaultDate || "");
       setNote("");
     }
-  }, [open, editing, defaultDate, suppliers, senders]);
+  }, [open, editing, defaultDate]);
 
   const supplier = suppliers.find((s) => s.id === supplierId);
   const sender = senders.find((s) => s.id === senderId);
