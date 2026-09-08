@@ -1,46 +1,80 @@
+import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Receipt, ArrowUpRight, Clock } from "lucide-react";
-import { formatRupiah, formatCompact, formatRelativeTime, formatDateLong } from "@/lib/format";
+import { formatRupiah, formatRelativeTime, formatDateLong, toISODate } from "@/lib/format";
+
+const FILTERS = [
+  { key: "today", label: "Hari Ini" },
+  { key: "yesterday", label: "Kemarin" },
+  { key: "last7", label: "7 Hari" },
+  { key: "all", label: "Semua" },
+];
+
+const dateStr = (offsetDays) => {
+  const d = new Date();
+  d.setDate(d.getDate() - offsetDays);
+  return toISODate(d);
+};
 
 export const RecentSummary = ({ transactions }) => {
-  const sorted = [...transactions].sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""));
+  const [filter, setFilter] = useState("today");
 
-  const dayMs = 24 * 60 * 60 * 1000;
-  const recent24 = sorted.filter((t) => t.created_at && Date.now() - new Date(t.created_at).getTime() <= dayMs);
-  const recent = recent24.length > 0 ? recent24 : sorted.slice(0, 3);
-  const isToday = recent24.length > 0;
+  const today = dateStr(0);
+  const yesterday = dateStr(1);
+  const last7Start = dateStr(6);
 
-  const total = recent.reduce((s, t) => s + t.amount, 0);
-  const byDate = {};
-  recent.forEach((t) => { byDate[t.date] = (byDate[t.date] || 0) + t.amount; });
-  const dateCount = Object.keys(byDate).length;
+  const matches = (t) => {
+    if (filter === "today") return t.date === today;
+    if (filter === "yesterday") return t.date === yesterday;
+    if (filter === "last7") return t.date >= last7Start && t.date <= today;
+    return true;
+  };
 
-  if (recent.length === 0) return null;
+  const filtered = transactions
+    .filter(matches)
+    .sort((a, b) => (a.date !== b.date ? (a.date < b.date ? 1 : -1) : (b.created_at || "").localeCompare(a.created_at || "")));
+
+  const total = filtered.reduce((s, t) => s + t.amount, 0);
+  const dateCount = new Set(filtered.map((t) => t.date)).size;
+  const activeLabel = FILTERS.find((f) => f.key === filter)?.label;
 
   return (
     <Card className="p-5 sm:p-6 border-border/80" data-testid="recent-summary-card">
-      <div className="flex items-start justify-between gap-3 mb-4 relative">
+      <div className="flex items-start justify-between gap-3 mb-4">
         <div className="flex items-center gap-2">
           <div className="h-9 w-9 rounded-lg bg-primary/10 text-primary grid place-items-center">
-            <Receipt className="h-4.5 w-4.5 h-5 w-5" />
+            <Receipt className="h-5 w-5" />
           </div>
           <div>
-            <h3 className="font-heading text-lg font-bold tracking-tight">Ringkasan Transaksi Terbaru</h3>
-            <p className="text-xs text-muted-foreground">{isToday ? "Transaksi yang dijalankan dalam 24 jam terakhir" : "Transaksi terakhir yang dicatat"}</p>
+            <h3 className="font-heading text-lg font-bold tracking-tight">Ringkasan Transaksi</h3>
+            <p className="text-xs text-muted-foreground">Ringkasan transfer per periode</p>
           </div>
         </div>
-        <Badge variant="secondary" className="font-semibold shrink-0" data-testid="recent-count-badge">{recent.length} transaksi</Badge>
+        <Badge variant="secondary" className="font-semibold shrink-0" data-testid="recent-count-badge">{filtered.length} transaksi</Badge>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4 relative">
+      <div className="flex flex-wrap gap-1.5 mb-4">
+        {FILTERS.map((f) => (
+          <button
+            key={f.key}
+            data-testid={`recent-filter-${f.key}`}
+            onClick={() => setFilter(f.key)}
+            className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${filter === f.key ? "border-primary bg-primary text-primary-foreground" : "border-border hover:border-primary/50 text-muted-foreground"}`}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
         <div className="rounded-xl border border-border bg-muted/30 p-3">
           <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Total Nominal</p>
           <p className="mt-1 font-mono-num font-bold text-base sm:text-lg" data-testid="recent-total-amount">{formatRupiah(total)}</p>
         </div>
         <div className="rounded-xl border border-border bg-muted/30 p-3">
           <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Jumlah Transaksi</p>
-          <p className="mt-1 font-mono-num font-bold text-base sm:text-lg">{recent.length}</p>
+          <p className="mt-1 font-mono-num font-bold text-base sm:text-lg">{filtered.length}</p>
         </div>
         <div className="rounded-xl border border-border bg-muted/30 p-3 col-span-2 sm:col-span-1">
           <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Tersebar di</p>
@@ -48,8 +82,11 @@ export const RecentSummary = ({ transactions }) => {
         </div>
       </div>
 
-      <div className="space-y-2 relative">
-        {recent.slice(0, 5).map((t) => (
+      <div className="space-y-2">
+        {filtered.length === 0 && (
+          <p className="text-sm text-muted-foreground py-6 text-center" data-testid="recent-empty">Tidak ada transaksi pada periode "{activeLabel}".</p>
+        )}
+        {filtered.slice(0, 6).map((t) => (
           <div key={t.id} data-testid={`recent-tx-${t.id}`} className="flex items-center gap-3 rounded-xl border border-border p-2.5">
             <div className="h-8 w-8 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 grid place-items-center shrink-0">
               <ArrowUpRight className="h-4 w-4" />
@@ -66,6 +103,9 @@ export const RecentSummary = ({ transactions }) => {
             </div>
           </div>
         ))}
+        {filtered.length > 6 && (
+          <p className="text-[11px] text-muted-foreground text-center pt-1">+{filtered.length - 6} transaksi lainnya</p>
+        )}
       </div>
     </Card>
   );

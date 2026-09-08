@@ -222,7 +222,7 @@ class TestSupplierAlias:
         assert r.status_code == 200
         suppliers = r.json()
         aliases = {s.get("alias") for s in suppliers}
-        for expected in ["Baja Makmur", "Karya Logam", "Mitra Kimia", "Prima Plastik"]:
+        for expected in ["PT.AAM", "BBB NEW", "TK NEW", "GULA NEW", "MINYAK", "BDN"]:
             assert expected in aliases, f"Missing alias {expected} in {aliases}"
 
     def test_create_supplier_with_alias(self, session):
@@ -283,3 +283,50 @@ class TestSupplierNotFoundBugRegression:
         session.delete(f"{API}/transactions/{tid}")
         session.delete(f"{API}/sender-accounts/{new_sid}")
 
+
+
+# ---------- Seed / Fresh-DB simulation ----------
+class TestSeedReseed:
+    def test_force_reseed_yields_exactly_70_suppliers_and_2_senders(self, session):
+        r = session.post(f"{API}/seed", params={"force": "true"})
+        assert r.status_code == 200, r.text
+        body = r.json()
+        assert body.get("seeded") is True
+        assert body.get("suppliers") == 70
+
+        sups = session.get(f"{API}/suppliers").json()
+        assert len(sups) == 70, f"expected 70 got {len(sups)}"
+        senders = session.get(f"{API}/sender-accounts").json()
+        assert len(senders) == 2, f"expected 2 senders got {len(senders)}"
+
+        # No leftover sample suppliers
+        names = [s["name"] for s in sups]
+        for junk in ["Supplier A", "Supplier B", "Supplier C", "Supplier D"]:
+            assert not any(junk in n for n in names), f"leftover sample {junk} present"
+
+        # Data integrity: expected names + aliases
+        by_name_alias = {(s["name"], s.get("alias", "")) for s in sups}
+        assert ("ANUGRAH ARGON MEDICA PT", "PT.AAM") in by_name_alias
+        assert ("BERKAT BUDI BERSAMA", "BBB NEW") in by_name_alias
+        # SUNGAI BUDI variants
+        sungai = [s for s in sups if s["name"].startswith("SUNGAI BUDI")]
+        assert len(sungai) >= 5
+        sungai_aliases = {s.get("alias", "") for s in sungai}
+        for a in ["TK NEW", "GULA NEW", "MINYAK"]:
+            assert a in sungai_aliases, f"missing {a} in SUNGAI aliases"
+        # 4 BDN aliased suppliers
+        bdn = [s for s in sups if s.get("alias") == "BDN"]
+        assert len(bdn) == 4, f"expected 4 BDN, got {len(bdn)}"
+
+    def test_idempotent_seed_no_duplicates(self, session):
+        # Call seed (no force) twice, then force twice — count should remain 70 with unique account_numbers
+        session.post(f"{API}/seed")
+        session.post(f"{API}/seed")
+        session.post(f"{API}/seed", params={"force": "true"})
+        session.post(f"{API}/seed", params={"force": "true"})
+        sups = session.get(f"{API}/suppliers").json()
+        assert len(sups) == 70
+        accs = [s["account_number"] for s in sups]
+        assert len(accs) == len(set(accs)), "duplicate account_numbers found"
+        senders = session.get(f"{API}/sender-accounts").json()
+        assert len(senders) == 2

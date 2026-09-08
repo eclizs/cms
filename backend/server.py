@@ -10,6 +10,7 @@ from typing import List, Optional, Annotated
 from bson import ObjectId
 import uuid
 from datetime import datetime, timezone, date, timedelta
+from seed_data import SEED_SUPPLIERS, SEED_SENDERS
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -377,56 +378,32 @@ async def recommendations(days: int = 14):
 
 
 # ---------- Seed ----------
+async def ensure_seed_data():
+    """Idempotently make sure the real supplier directory, sender accounts and
+    settings exist. Runs on every startup so a fresh (e.g. production) database
+    is always populated after a deploy/republish."""
+    for s in SEED_SUPPLIERS:
+        exists = await db.suppliers.find_one({"name": s["name"], "account_number": s["account_number"]})
+        if not exists:
+            sup = Supplier(name=s["name"], alias=s.get("alias", ""), bank=s.get("bank", ""),
+                           account_number=s["account_number"], contact="")
+            await db.suppliers.insert_one(sup.model_dump())
+    for s in SEED_SENDERS:
+        exists = await db.sender_accounts.find_one({"name": s["name"]})
+        if not exists:
+            await db.sender_accounts.insert_one(SenderAccount(**s).model_dump())
+    await get_settings_doc()
+
+
 @api_router.post("/seed")
 async def seed(force: bool = False):
     if force:
         await db.suppliers.delete_many({})
         await db.transactions.delete_many({})
         await db.sender_accounts.delete_many({})
-    existing = await db.suppliers.count_documents({})
-    if existing > 0 and not force:
-        return {"seeded": False, "message": "Data sudah ada"}
-
-    senders_data = [
-        {"name": "Rekening Operasional BCA", "account_number": "5210012345"},
-        {"name": "Rekening Giro Mandiri", "account_number": "1230098765432"},
-    ]
-    senders = []
-    for s in senders_data:
-        obj = SenderAccount(**s)
-        senders.append(obj)
-        await db.sender_accounts.insert_one(obj.model_dump())
-
-    suppliers_data = [
-        {"name": "PT Sumber Baja Makmur (Supplier A)", "alias": "Baja Makmur", "bank": "BCA", "account_number": "1234567890", "contact": "Andi - 0812xxxx"},
-        {"name": "CV Karya Logam (Supplier B)", "alias": "Karya Logam", "bank": "Mandiri", "account_number": "1440099887766", "contact": "Budi - 0813xxxx"},
-        {"name": "PT Mitra Kimia Nusantara (Supplier C)", "alias": "Mitra Kimia", "bank": "BRI", "account_number": "002201998877", "contact": "Citra - 0821xxxx"},
-        {"name": "UD Prima Plastik (Supplier D)", "alias": "Prima Plastik", "bank": "BNI", "account_number": "0998877665", "contact": "Dewi - 0856xxxx"},
-    ]
-    suppliers = []
-    for s in suppliers_data:
-        obj = Supplier(**s)
-        suppliers.append(obj)
-        await db.suppliers.insert_one(obj.model_dump())
-
-    today = date.today()
-    d8 = today.replace(day=8) if today.day <= 8 else today + timedelta(days=1)
-    d9 = d8 + timedelta(days=1)
-    tx_data = [
-        (suppliers[0], senders[0], 100_000_000, d8, "Invoice #1029 Bahan Baku Baja"),
-        (suppliers[1], senders[0], 150_000_000, d8, "DP Order Logam Batch 3"),
-        (suppliers[2], senders[1], 120_000_000, d9, "Pelunasan Kimia Industri"),
-    ]
-    for sup, snd, amt, d, note in tx_data:
-        tx = Transaction(
-            supplier_id=sup.id, supplier_name=sup.name, bank=sup.bank,
-            account_number=sup.account_number,
-            sender_id=snd.id, sender_name=snd.name, sender_account=snd.account_number,
-            amount=amt, date=d.isoformat(), note=note,
-        )
-        await db.transactions.insert_one(tx.model_dump())
-
-    return {"seeded": True}
+    await ensure_seed_data()
+    count = await db.suppliers.count_documents({})
+    return {"seeded": True, "suppliers": count}
 
 
 @api_router.get("/")
@@ -450,8 +427,7 @@ logger = logging.getLogger(__name__)
 
 @app.on_event("startup")
 async def seed_on_startup():
-    if await db.suppliers.count_documents({}) == 0:
-        await seed()
+    await ensure_seed_data()
 
 
 @app.on_event("shutdown")

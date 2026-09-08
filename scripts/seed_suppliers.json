@@ -1,0 +1,422 @@
+[
+  {
+    "name": "ANUGRAH ARGON MEDICA PT",
+    "alias": "PT.AAM",
+    "bank": "BCA",
+    "account_number": "0513085149"
+  },
+  {
+    "name": "BERKAH BENUA SUKSES CV",
+    "alias": "PT.BBS",
+    "bank": "BCA",
+    "account_number": "0513111212"
+  },
+  {
+    "name": "BERKAT BUDI BERSAMA",
+    "alias": "BBB NEW",
+    "bank": "BRI",
+    "account_number": "016301003609564"
+  },
+  {
+    "name": "BINA SAN PRIMA PT",
+    "alias": "PT.BSP",
+    "bank": "BCA",
+    "account_number": "0510586638"
+  },
+  {
+    "name": "BINTANG TIMUR ONG TJING TUNG",
+    "alias": "",
+    "bank": "BRI",
+    "account_number": "028201011219531"
+  },
+  {
+    "name": "BORNEO CIPTA MANDIRI",
+    "alias": "",
+    "bank": "MANDIRI",
+    "account_number": "1590030040058"
+  },
+  {
+    "name": "CIMORY(BRSS) BERKAT RUKUN SEJAHTERA SENTOSA PT",
+    "alias": "BDN",
+    "bank": "BNI",
+    "account_number": "0526789698"
+  },
+  {
+    "name": "CITRA MULIA CV",
+    "alias": "CV CITRA MULIA",
+    "bank": "BCA",
+    "account_number": "8221058585"
+  },
+  {
+    "name": "CV BALI UTAMA",
+    "alias": "CV.BALI UTAMA",
+    "bank": "BRI",
+    "account_number": "028201011682530"
+  },
+  {
+    "name": "CV BORNEO CIPTA MAND",
+    "alias": "BORNEO",
+    "bank": "BRI",
+    "account_number": "028201000083565"
+  },
+  {
+    "name": "CV PINANG MAS",
+    "alias": "CV PINANG MAS",
+    "bank": "BRI",
+    "account_number": "028201011681534"
+  },
+  {
+    "name": "CV SINAR HARAPAN",
+    "alias": "SINAR HARAPAN",
+    "bank": "BRI",
+    "account_number": "180601000220300"
+  },
+  {
+    "name": "CV.BBB BARANG BAYI BAHAGIA",
+    "alias": "",
+    "bank": "BRI",
+    "account_number": "000301002432560"
+  },
+  {
+    "name": "DJARUM SUMBER CIPTA MULTINI",
+    "alias": "",
+    "bank": "BRI",
+    "account_number": "028201000643307"
+  },
+  {
+    "name": "FAJAR LESTARI ABADI",
+    "alias": "",
+    "bank": "BRI",
+    "account_number": "058401000806305"
+  },
+  {
+    "name": "HYPERMART MATAHARI PUTRA PRIMA",
+    "alias": "",
+    "bank": "MANDIRI",
+    "account_number": "1550004064013"
+  },
+  {
+    "name": "IBU SUKSES MENGASIHI",
+    "alias": "CV.ISM",
+    "bank": "BCA",
+    "account_number": "0514110120"
+  },
+  {
+    "name": "INDOMARCO ADI PRIMA",
+    "alias": "",
+    "bank": "BRI",
+    "account_number": "014301000092306"
+  },
+  {
+    "name": "INDONUSA CAHAYA UTAM",
+    "alias": "",
+    "bank": "BRI",
+    "account_number": "028201001030565"
+  },
+  {
+    "name": "INTIBOGA MANDIRI PT",
+    "alias": "",
+    "bank": "DANAMON",
+    "account_number": "11751468"
+  },
+  {
+    "name": "KARYA CIPTA MANDIRI HERY KAPRI",
+    "alias": "",
+    "bank": "BRI",
+    "account_number": "028201016402503"
+  },
+  {
+    "name": "KIMIA FARMA KFTD PALANGKARAYA",
+    "alias": "",
+    "bank": "BRI",
+    "account_number": "024301001012307"
+  },
+  {
+    "name": "KUDA MAS MANDIRI",
+    "alias": "",
+    "bank": "BRI",
+    "account_number": "062301000853308"
+  },
+  {
+    "name": "LAUT TIMUR ARDIPRIMA PT",
+    "alias": "",
+    "bank": "BNI",
+    "account_number": "0555505078"
+  },
+  {
+    "name": "MARGA NUSANTARA JAYA PT",
+    "alias": "",
+    "bank": "BCA",
+    "account_number": "8600245300"
+  },
+  {
+    "name": "MAYORA DAN OT CV BUDIANA",
+    "alias": "BDN",
+    "bank": "BRI",
+    "account_number": "028201000441569"
+  },
+  {
+    "name": "MEKAR AGRO BERKAT NU",
+    "alias": "",
+    "bank": "MANDIRI",
+    "account_number": "1590011110003"
+  },
+  {
+    "name": "MENARA CV BUDIANA",
+    "alias": "BDN",
+    "bank": "BRI",
+    "account_number": "028201000439562"
+  },
+  {
+    "name": "MENSA BINASUKSES",
+    "alias": "PT.MBS",
+    "bank": "BRI",
+    "account_number": "213101000136307"
+  },
+  {
+    "name": "MILLENNIUM PHARMACON INTERNATIONAL PT TBK",
+    "alias": "PT.MPI",
+    "bank": "BCA",
+    "account_number": "0065945517"
+  },
+  {
+    "name": "NEW MEGAH BINTANG CEMERL",
+    "alias": "MGP",
+    "bank": "MANDIRI",
+    "account_number": "1590013520779"
+  },
+  {
+    "name": "PADI MAS PRIMA SEHAT",
+    "alias": "",
+    "bank": "BRI",
+    "account_number": "028201017320534"
+  },
+  {
+    "name": "PAPA SAMSU VIVI RIKAWATI",
+    "alias": "",
+    "bank": "BRI",
+    "account_number": "119701000120563"
+  },
+  {
+    "name": "PARIT PADANG GLOBAL PT",
+    "alias": "PT.PPG",
+    "bank": "BCA",
+    "account_number": "0511180073"
+  },
+  {
+    "name": "PESONA CITRA PROPERTINDO",
+    "alias": "",
+    "bank": "BCA",
+    "account_number": "8585737999"
+  },
+  {
+    "name": "POH KA GWAN 2 DELAPAN DELAPAN JAYA CV",
+    "alias": "",
+    "bank": "BCA",
+    "account_number": "0886988588"
+  },
+  {
+    "name": "POH KA GWAN LIMA DELAPAN JAYA CV",
+    "alias": "",
+    "bank": "BCA",
+    "account_number": "0886658588"
+  },
+  {
+    "name": "PRATAMA KARYALOKA MANDIR",
+    "alias": "PKM",
+    "bank": "BCA",
+    "account_number": "8585196688"
+  },
+  {
+    "name": "PT ANUGERAH PHARMINDO LESTARI",
+    "alias": "PT.APL",
+    "bank": "STANDARD CHARTERED BANK",
+    "account_number": "8559001970334601"
+  },
+  {
+    "name": "PT SINAR NIAGA SEJAH",
+    "alias": "SNS",
+    "bank": "BRI",
+    "account_number": "028201001364304"
+  },
+  {
+    "name": "PT SUMBER KAHAYAN KH",
+    "alias": "SKK",
+    "bank": "BRI",
+    "account_number": "028201001721302"
+  },
+  {
+    "name": "PT TIARA MENTAYA BER",
+    "alias": "PT.TMB",
+    "bank": "BCA",
+    "account_number": "8800161716"
+  },
+  {
+    "name": "PT TRI SAKTI PURWOSA",
+    "alias": "PT TRI SAKTI PURWOSA",
+    "bank": "BRI",
+    "account_number": "225601000637307"
+  },
+  {
+    "name": "PT TRI SAPTA JAYA",
+    "alias": "PT.TSJ",
+    "bank": "BRI",
+    "account_number": "024301001701304"
+  },
+  {
+    "name": "PT USAHA SYARIAH BERSAMA",
+    "alias": "USB",
+    "bank": "BCA",
+    "account_number": "7309446849"
+  },
+  {
+    "name": "PT. SAPTA SARI TAMA",
+    "alias": "PT.SAPTA SARI TAMA",
+    "bank": "BRI",
+    "account_number": "060001000310302"
+  },
+  {
+    "name": "PT.AMS ANTARMITRA SEMBADA",
+    "alias": "",
+    "bank": "BRI",
+    "account_number": "062301000733304"
+  },
+  {
+    "name": "PT.KIS KHATULISTIWA INTI SU",
+    "alias": "",
+    "bank": "BRI",
+    "account_number": "007101003768307"
+  },
+  {
+    "name": "PUJI SURYA INDAH PT",
+    "alias": "",
+    "bank": "BCA",
+    "account_number": "6695081115"
+  },
+  {
+    "name": "PUTRA NIAGA SEJAHTERA PT",
+    "alias": "PNS",
+    "bank": "BCA",
+    "account_number": "8585314567"
+  },
+  {
+    "name": "SARANA SEHAT MANDIRI PT",
+    "alias": "SSM",
+    "bank": "BCA",
+    "account_number": "2388888330"
+  },
+  {
+    "name": "SARANA TANI PRATAMA PT",
+    "alias": "",
+    "bank": "BCA",
+    "account_number": "2582007188"
+  },
+  {
+    "name": "SARDEN PT SUMBER YALA SAMUDRA",
+    "alias": "",
+    "bank": "BCA",
+    "account_number": "0883036139"
+  },
+  {
+    "name": "SARIMEKAR CAHAYAPERS",
+    "alias": "SMCP",
+    "bank": "DANAMON",
+    "account_number": "11749058"
+  },
+  {
+    "name": "SEPADAN SASTRO SUNARYO",
+    "alias": "",
+    "bank": "BRI",
+    "account_number": "016301001202308"
+  },
+  {
+    "name": "SINAR REJEKI BERSAMA",
+    "alias": "SRB",
+    "bank": "BRI",
+    "account_number": "028201001286302"
+  },
+  {
+    "name": "SUKSES ABADI SENTRATAMA",
+    "alias": "SAS",
+    "bank": "BCA",
+    "account_number": "8585818999"
+  },
+  {
+    "name": "SUMBER SEHAT SEJAHTE",
+    "alias": "PT.SSS",
+    "bank": "BRI",
+    "account_number": "062301000975566"
+  },
+  {
+    "name": "SUNGAI BUDI",
+    "alias": "",
+    "bank": "MANDIRI",
+    "account_number": "1240006726211"
+  },
+  {
+    "name": "SUNGAI BUDI",
+    "alias": "TK NEW",
+    "bank": "CIMB NIAGA",
+    "account_number": "860012803400"
+  },
+  {
+    "name": "SUNGAI BUDI",
+    "alias": "",
+    "bank": "CIMB NIAGA",
+    "account_number": "800102056200"
+  },
+  {
+    "name": "SUNGAI BUDI PT",
+    "alias": "GULA NEW",
+    "bank": "BCA",
+    "account_number": "7660631971"
+  },
+  {
+    "name": "SUNGAI BUDI PT",
+    "alias": "MINYAK",
+    "bank": "BCA",
+    "account_number": "0842442000"
+  },
+  {
+    "name": "SURYA MADISTRINDO",
+    "alias": "",
+    "bank": "BRI",
+    "account_number": "028201001444308"
+  },
+  {
+    "name": "TEMPO PT PD",
+    "alias": "",
+    "bank": "BCA",
+    "account_number": "0513084363"
+  },
+  {
+    "name": "TNT ANNA MARIANA",
+    "alias": "",
+    "bank": "BRI",
+    "account_number": "028201021440504"
+  },
+  {
+    "name": "TOKO SUZANA SBY SUKSES SARANA NIAGA PT",
+    "alias": "",
+    "bank": "BCA",
+    "account_number": "7880772257"
+  },
+  {
+    "name": "TRIJAYA ADHIRAJA ABADI PT",
+    "alias": "",
+    "bank": "BNI",
+    "account_number": "8608008989"
+  },
+  {
+    "name": "UD MACAN KETAWA",
+    "alias": "",
+    "bank": "BRI",
+    "account_number": "028201000850564"
+  },
+  {
+    "name": "UNILEVER BUDIANA DISTRINDO NIAGA",
+    "alias": "BDN",
+    "bank": "BRI",
+    "account_number": "028201002728307"
+  }
+]
