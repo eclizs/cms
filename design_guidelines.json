@@ -1,0 +1,198 @@
+{
+  "app_context": {
+    "name": "AlokasiTransfer - Jadwal & Pencatat Transaksi Perbankan Usaha",
+    "type": "Dashboard / Fullstack Financial Scheduler & Analytics Tool",
+    "language": "Indonesian (IDR / Rupiah)",
+    "currency_format": "Rp xxx.xxx.xxx (Contoh: Rp 100.000.000 / 100 Juta)",
+    "target_user": "Pemilik Bisnis / Finance Lead di Indonesia yang rutin melakukan transfer supplier dalam nominal besar dan membutuhkan rekomendasi tanggal agar beban harian seimbang."
+  },
+  "theme_strategy": {
+    "mode": "Light / Dark Toggleable (Default: Slate Light with Crisp Banking Depth)",
+    "archetype": "Swiss High-Contrast Fintech & Tactical Executive",
+    "emotional_tone": "Terpercaya, Sangat Terstruktur, Presisi Finansial, Efisien, Tanpa Hambatan"
+  },
+  "typography": {
+    "heading_font": "Plus Jakarta Sans / Outfit, sans-serif",
+    "body_font": "Inter / System Sans, sans-serif",
+    "mono_font": "JetBrains Mono / Roboto Mono, monospace (Khusus Nomor Rekening, ID Transaksi, & Nominal IDR)",
+    "font_scale": {
+      "h1_hero": "text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight",
+      "h2_section": "text-2xl sm:text-3xl font-bold tracking-tight",
+      "h3_card": "text-lg sm:text-xl font-semibold tracking-tight",
+      "body": "text-sm sm:text-base leading-relaxed",
+      "caption_mono": "text-xs font-mono tracking-wide"
+    }
+  },
+  "color_system": {
+    "light_mode": {
+      "background": "#F8FAFC",
+      "surface_card": "#FFFFFF",
+      "border": "#E2E8F0",
+      "text_primary": "#0F172A",
+      "text_secondary": "#475569",
+      "primary_brand": "#0284C7",
+      "primary_hover": "#0369A1"
+    },
+    "dark_mode": {
+      "background": "#0B132B",
+      "surface_card": "#1C2541",
+      "border": "#334155",
+      "text_primary": "#F8FAFC",
+      "text_secondary": "#94A3B8",
+      "primary_brand": "#38BDF8",
+      "primary_hover": "#0284C7"
+    },
+    "heatmap_indicators": {
+      "safe_green": {
+        "hex": "#10B981",
+        "bg_light": "#ECFDF5",
+        "bg_dark": "#064E3B",
+        "text": "#047857",
+        "label": "Rendah / Aman (< 50% Limit)"
+      },
+      "warning_yellow": {
+        "hex": "#F59E0B",
+        "bg_light": "#FFFBEB",
+        "bg_dark": "#78350F",
+        "text": "#B45309",
+        "label": "Sedang / Mendekati Limit (50% - 90% Limit)"
+      },
+      "danger_red": {
+        "hex": "#EF4444",
+        "bg_light": "#FEF2F2",
+        "bg_dark": "#7F1D1D",
+        "text": "#B91C1C",
+        "label": "Tinggi / Melebihi Limit (> 90% Limit)"
+      },
+      "empty_slate": {
+        "hex": "#94A3B8",
+        "bg_light": "#F1F5F9",
+        "bg_dark": "#1E293B",
+        "label": "Belum Ada Transaksi"
+      }
+    },
+    "bank_brand_accents": {
+      "BCA": "#005E9E",
+      "Mandiri": "#003D79",
+      "BRI": "#00529C",
+      "BNI": "#E05326",
+      "CIMB": "#8B0000",
+      "Danamon": "#E30613"
+    }
+  },
+  "layout_and_grids": {
+    "container_padding": "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-8",
+    "dashboard_grid": "grid grid-cols-1 lg:grid-cols-12 gap-6",
+    "bento_spans": {
+      "summary_kpi": "lg:col-span-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4",
+      "calendar_heatmap": "lg:col-span-8 space-y-4",
+      "recommendations_and_limits": "lg:col-span-4 space-y-6",
+      "transaction_list_and_suppliers": "lg:col-span-12 grid grid-cols-1 lg:grid-cols-2 gap-6"
+    }
+  },
+  "components_and_patterns": {
+    "header_nav": {
+      "style": "Glassmorphism sticky header with backdrop-blur-md border-b border-border z-40 bg-background/80",
+      "elements": [
+        "Logo dengan badge 'AlokasiTransfer Pro'",
+        "Indikator Limit Harian Aktif (Badge Klik untuk Edit)",
+        "Tombol '+ Catat Transfer Baru' (Primary CTA)",
+        "Dark / Light Theme Toggle",
+        "Modal Pengaturan Limit"
+      ]
+    },
+    "calendar_heatmap_view": {
+      "description": "Tampilan kalender bulanan interaktif. Setiap sel tanggal menunjukkan total nominal transfer harian dan badge status warna (Hijau/Kuning/Merah). Tanggal dengan beban tersedikit disorot dengan ring bercahaya.",
+      "features": [
+        "Navigasi bulan & tahun (Bulan Lalu, Bulan Depan, Hari Ini)",
+        "Batas Limit Harian Visual Indicator pada sel tanggal",
+        "Klik sel tanggal untuk melihat rincian transaksi hari tersebut di panel detail",
+        "Filter cepat: Tampilkan Semua / Hanya Hari Mendekati Limit / Tanggal Paling Aman"
+      ]
+    },
+    "smart_recommendation_engine": {
+      "description": "Kartu kecerdasan buatan/algoritma yang secara otomatis menganalisis kalender dan menyarankan 3-5 tanggal mendatang dengan jumlah transaksi tersedikit.",
+      "actions": [
+        "Klik 'Pilih Tanggal Ini' langsung mengisi tanggal di form pencatatan transfer baru",
+        "Menampilkan sisa kuota nominal aman (Sisa Limit) per tanggal rekomendasi"
+      ]
+    },
+    "daily_limit_configurator": {
+      "description": "Widget interaktif tempat pengguna dapat mengubah Batas Nominal Maksimal per Hari secara mandiri (misal: Rp 200.000.000).",
+      "features": [
+        "Input angka dengan format rupiah otomatis",
+        "Quick preset buttons (+Rp 50jt, +Rp 100jt, Rp 200jt, Rp 500jt)",
+        "Status kalkulasi ulang warna kalender secara instant"
+      ]
+    },
+    "transaction_form_modal": {
+      "description": "Formulir input dan edit transaksi transfer perbankan.",
+      "fields": [
+        "Dropdown Supplier (Dilengkapi pencarian & tombol '+ Tambah Supplier Baru')",
+        "Rincian Bank & No Rekening Supplier (Auto-filled dari data supplier)",
+        "Nominal Transfer dalam Rupiah (Format terpisah Juta/Ribu & terbilang)",
+        "Tanggal Transfer (Rekomendasi tanggal tersedikit ditampilkan di bawah picker)",
+        "Catatan / Keperluan Transfer (Contoh: Invoice #1029 Bahan Baku)"
+      ]
+    },
+    "supplier_directory_panel": {
+      "description": "Daftar manajemen supplier untuk menambah, mengedit, dan menghapus data supplier.",
+      "fields": ["Nama Supplier / PT", "Nama Bank", "Nomor Rekening", "Kategori / Kontak Sales"]
+    }
+  },
+  "motion_and_interaction": {
+    "transitions": "transition-colors duration-200 ease-in-out, transition-shadow duration-200 ease-in-out",
+    "hover_effects": "hover:-translate-y-0.5 hover:shadow-md active:translate-y-0",
+    "toast_notifications": "Menggunakan 'sonner' untuk umpan balik transaksi berhasil ditambahkan, diubah, atau limit diperbarui."
+  },
+  "accessibility_and_testing": {
+    "data_testid_convention": {
+      "limit_setting_input": "data-testid=\"daily-limit-input\"",
+      "limit_save_btn": "data-testid=\"save-limit-button\"",
+      "add_transaction_btn": "data-testid=\"add-transaction-button\"",
+      "transaction_modal_submit": "data-testid=\"submit-transaction-button\"",
+      "supplier_select": "data-testid=\"supplier-select-dropdown\"",
+      "amount_input": "data-testid=\"transaction-amount-input\"",
+      "date_picker": "data-testid=\"transaction-date-picker\"",
+      "calendar_day_cell": "data-testid=\"calendar-day-cell-{date}\"",
+      "smart_suggestion_card": "data-testid=\"smart-date-suggestion-{index}\"",
+      "supplier_directory_btn": "data-testid=\"manage-suppliers-button\"",
+      "theme_toggle_btn": "data-testid=\"theme-toggle-button\""
+    }
+  },
+  "image_urls": [
+    {
+      "category": "hero_dashboard_bg",
+      "url": "https://images.unsplash.com/photo-1551288049-bebda4e38f71?crop=entropy&cs=srgb&fm=jpg&q=85",
+      "description": "Tampilan grafik performa analytics finansial yang bersih"
+    },
+    {
+      "category": "bank_indonesia_heritage",
+      "url": "https://images.unsplash.com/photo-1688877093284-1e5e39110437?crop=entropy&cs=srgb&fm=jpg&q=85",
+      "description": "Gedung Bank Indonesia perbankan nasional"
+    }
+  ],
+  "instructions_to_main_agent": [
+    "1. Pastikan backend FastAPI memiliki REST API lengkap untuk: GET/POST/PUT/DELETE /api/transactions, GET/POST/PUT/DELETE /api/suppliers, GET/PUT /api/settings (limit harian), dan GET /api/recommendations (algoritma pencarian tanggal paling sepi).",
+    "2. Gunakan komponen UI dari src/components/ui (dialog, select, calendar, table, badge, input, button, tabs, card, popover, sonner).",
+    "3. Sediakan contoh data awal (mock seed data) transaksi supplier A (8 Sept 100jt), supplier B (8 Sept 150jt), supplier C (9 Sept 120jt) agar saat aplikasi pertama kali dibuka langsung terlihat jelas kalender heatmap-nya.",
+    "4. Tampilkan nominal dalam format Rupiah penuh (misal: Rp 100.000.000) dan ringkas pada sel kalender (misal: Rp 100jt). Tunjukkan terbilang saat mengetik nominal.",
+    "5. Tempatkan indikator warna kalender secara tepat berdasar Batas Limit Harian yang diatur pengguna: Hijau (<50%), Kuning (50-90%), Merah (>90% atau melebih batas limit).",
+    "6. Tambahkan fitur Smart Date Suggestion yang menampilkan tanggal-tanggal mendatang dengan beban nominal terendah dan tombol 1-klik untuk memasukkan tanggal tersebut ke transaksi baru.",
+    "7. Semua elemen interaktif dan tombol wajib memiliki data-testid sesuai spesifikasi di json ini.",
+    "8. Gunakan library Sonner untuk toast notification saat menambah/mengedit transaksi dan mengubah limit harian."
+  ],
+  "UNIVERSAL GUIDELINES FOR MAIN AGENT": [
+    "Dark colors look good when used independently without gradients. DO NOT use dark colors as gradients.",
+    "Don't make generic centered layouts, simplistic gradients, and uniform styling.",
+    "Create depth through layered design elements with z-index hierarchy.",
+    "Use glass-morphism effects with backdrop filters (12-24px blur) for sticky header and floating panels.",
+    "You MUST NOT apply universal transition (e.g. transition: all). Specify transform/opacity/colors explicitly.",
+    "You MUST NOT center align the app container, i.e. do not add `.App { text-align: center; }`.",
+    "Always use modern button styles (pill-shaped or crisp rectangular with rounded-md and hover states).",
+    "NEVER use AI assistant Emoji characters like 🤖🧠💭💡🔮🎯 for UI icons. Always use Lucide React icons.",
+    "Every interaction needs micro-animations - hover states, transitions, and clear active focus states.",
+    "Use generous spacing (p-6, p-8) and keep clear padding inside bordered containers.",
+    "All interactive and key informational elements MUST include a data-testid attribute."
+  ]
+}
