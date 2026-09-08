@@ -9,6 +9,7 @@ import { Header } from "@/components/Header";
 import { KpiSummary } from "@/components/KpiSummary";
 import { CalendarHeatmap } from "@/components/CalendarHeatmap";
 import { TransactionHistory } from "@/components/TransactionHistory";
+import { RecentSummary } from "@/components/RecentSummary";
 import { TrashDialog } from "@/components/TrashDialog";
 import { DailyLimitDialog } from "@/components/DailyLimitDialog";
 import { TransactionDialog } from "@/components/TransactionDialog";
@@ -206,6 +207,8 @@ function App() {
         </div>
 
         <KpiSummary transactions={monthTransactions} dailyLimit={dailyLimit} monthLabel={MONTH_NAMES[month.getMonth()]} />
+
+        <RecentSummary transactions={transactions} />
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           <div className="lg:col-span-8">

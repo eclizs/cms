@@ -273,7 +273,7 @@ async def update_transaction(tx_id: str, payload: TransactionCreate):
         "date": payload.date,
         "note": payload.note or "",
     }
-    await db.transactions.update_one({"id": tx_id}, {"$set": update})
+    await db.transactions.update_one({"id": tx_id, "deleted_at": None}, {"$set": update})
     existing.update(update)
     return existing
 

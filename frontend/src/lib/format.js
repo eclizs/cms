@@ -51,6 +51,21 @@ export const formatDateLong = (iso) => {
   return `${dayName}, ${d.getDate()} ${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}`;
 };
 
+export const formatRelativeTime = (isoDateTime) => {
+  if (!isoDateTime) return "";
+  const then = new Date(isoDateTime).getTime();
+  const diff = Date.now() - then;
+  const min = Math.floor(diff / 60000);
+  if (min < 1) return "baru saja";
+  if (min < 60) return `${min} menit lalu`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr} jam lalu`;
+  const day = Math.floor(hr / 24);
+  if (day < 7) return `${day} hari lalu`;
+  const d = new Date(isoDateTime);
+  return `${d.getDate()} ${MONTH_NAMES[d.getMonth()]}`;
+};
+
 export const getDayStatus = (total, limit) => {
   if (!total || total === 0) return "empty";
   const ratio = total / limit;

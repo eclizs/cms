@@ -1,6 +1,5 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { History, Pencil, Trash2, Trash } from "lucide-react";
 import { formatRupiah, formatDateLong } from "@/lib/format";
 
@@ -28,7 +27,7 @@ export const TransactionHistory = ({ transactions, onEdit, onDelete, onOpenTrash
       </div>
       <p className="text-xs text-muted-foreground mb-4">{sorted.length} transaksi tercatat</p>
 
-      <ScrollArea className="h-[420px] pr-3 -mr-3">
+      <div className="h-[420px] overflow-y-auto pr-1">
         <div className="space-y-2.5">
           {sorted.length === 0 && (
             <p className="text-sm text-muted-foreground py-6 text-center">Belum ada transaksi.</p>
@@ -57,7 +56,7 @@ export const TransactionHistory = ({ transactions, onEdit, onDelete, onOpenTrash
             </div>
           ))}
         </div>
-      </ScrollArea>
+      </div>
     </Card>
   );
 };
