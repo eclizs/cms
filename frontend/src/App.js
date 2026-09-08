@@ -12,7 +12,7 @@ import { SmartRecommendations } from "@/components/SmartRecommendations";
 import { DailyLimitDialog } from "@/components/DailyLimitDialog";
 import { TransactionDialog } from "@/components/TransactionDialog";
 import { SupplierManager } from "@/components/SupplierManager";
-import { DayDetail } from "@/components/DayDetail";
+import { DayDetailDialog } from "@/components/DayDetailDialog";
 
 function App() {
   const { theme, toggle } = useTheme();
@@ -22,6 +22,7 @@ function App() {
   const [recommendations, setRecommendations] = useState({ suggestions: [] });
   const [month, setMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(null);
+  const [dayDetailOpen, setDayDetailOpen] = useState(false);
 
   const [txOpen, setTxOpen] = useState(false);
   const [editingTx, setEditingTx] = useState(null);
@@ -68,7 +69,13 @@ function App() {
   const openNewTransaction = (date = "") => {
     setEditingTx(null);
     setTxDefaultDate(date);
+    setDayDetailOpen(false);
     setTxOpen(true);
+  };
+
+  const selectDay = (iso) => {
+    setSelectedDate(iso);
+    setDayDetailOpen(true);
   };
 
   const handleSubmitTx = async (data) => {
@@ -156,28 +163,28 @@ function App() {
               dailyTotals={dailyTotals}
               dailyLimit={dailyLimit}
               selectedDate={selectedDate}
-              onSelectDay={setSelectedDate}
+              onSelectDay={selectDay}
               onPrev={() => setMonth(new Date(month.getFullYear(), month.getMonth() - 1, 1))}
               onNext={() => setMonth(new Date(month.getFullYear(), month.getMonth() + 1, 1))}
-              onToday={() => { const t = new Date(); setMonth(new Date(t.getFullYear(), t.getMonth(), 1)); setSelectedDate(toISODate(t)); }}
+              onToday={() => { const t = new Date(); setMonth(new Date(t.getFullYear(), t.getMonth(), 1)); selectDay(toISODate(t)); }}
             />
           </div>
           <div className="lg:col-span-4 space-y-6">
             <SmartRecommendations recommendations={recommendations} onPick={pickSuggestion} />
           </div>
         </div>
-
-        <div className="grid grid-cols-1 gap-6">
-          <DayDetail
-            date={selectedDate}
-            transactions={transactions}
-            dailyLimit={dailyLimit}
-            onAdd={openNewTransaction}
-            onEdit={(t) => { setEditingTx(t); setTxDefaultDate(""); setTxOpen(true); }}
-            onDelete={handleDeleteTx}
-          />
-        </div>
       </main>
+
+      <DayDetailDialog
+        open={dayDetailOpen}
+        onOpenChange={setDayDetailOpen}
+        date={selectedDate}
+        transactions={transactions}
+        dailyLimit={dailyLimit}
+        onAdd={openNewTransaction}
+        onEdit={(t) => { setEditingTx(t); setTxDefaultDate(""); setDayDetailOpen(false); setTxOpen(true); }}
+        onDelete={handleDeleteTx}
+      />
 
       <TransactionDialog
         open={txOpen}
