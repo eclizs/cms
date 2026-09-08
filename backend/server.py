@@ -49,6 +49,9 @@ class Transaction(BaseModel):
     supplier_name: str
     bank: str
     account_number: str
+    sender_id: Optional[str] = None
+    sender_name: Optional[str] = ""
+    sender_account: Optional[str] = ""
     amount: int  # rupiah
     date: str  # YYYY-MM-DD
     note: Optional[str] = ""
@@ -58,9 +61,23 @@ class Transaction(BaseModel):
 
 class TransactionCreate(BaseModel):
     supplier_id: str
+    sender_id: Optional[str] = None
     amount: int
     date: str
     note: Optional[str] = ""
+
+
+class SenderAccount(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str
+    account_number: str
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+
+class SenderAccountCreate(BaseModel):
+    name: str
+    account_number: str
 
 
 class Settings(BaseModel):
@@ -79,6 +96,43 @@ async def get_settings_doc():
         await db.settings.insert_one(default)
         return default
     return doc
+
+
+# ---------- Sender Accounts ----------
+@api_router.get("/sender-accounts", response_model=List[SenderAccount])
+async def list_sender_accounts():
+    docs = await db.sender_accounts.find({}, {"_id": 0}).sort("name", 1).to_list(1000)
+    return docs
+
+
+@api_router.post("/sender-accounts", response_model=SenderAccount)
+async def create_sender_account(payload: SenderAccountCreate):
+    acc = SenderAccount(**payload.model_dump())
+    await db.sender_accounts.insert_one(acc.model_dump())
+    return acc
+
+
+@api_router.put("/sender-accounts/{sender_id}", response_model=SenderAccount)
+async def update_sender_account(sender_id: str, payload: SenderAccountCreate):
+    existing = await db.sender_accounts.find_one({"id": sender_id}, {"_id": 0})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Rekening pengirim tidak ditemukan")
+    update = payload.model_dump()
+    await db.sender_accounts.update_one({"id": sender_id}, {"$set": update})
+    await db.transactions.update_many(
+        {"sender_id": sender_id},
+        {"$set": {"sender_name": update["name"], "sender_account": update["account_number"]}},
+    )
+    existing.update(update)
+    return existing
+
+
+@api_router.delete("/sender-accounts/{sender_id}")
+async def delete_sender_account(sender_id: str):
+    res = await db.sender_accounts.delete_one({"id": sender_id})
+    if res.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Rekening pengirim tidak ditemukan")
+    return {"ok": True}
 
 
 # ---------- Suppliers ----------
@@ -173,11 +227,19 @@ async def create_transaction(payload: TransactionCreate):
     supplier = await db.suppliers.find_one({"id": payload.supplier_id}, {"_id": 0})
     if not supplier:
         raise HTTPException(status_code=404, detail="Supplier tidak ditemukan")
+    sender = None
+    if payload.sender_id:
+        sender = await db.sender_accounts.find_one({"id": payload.sender_id}, {"_id": 0})
+        if not sender:
+            raise HTTPException(status_code=404, detail="Rekening pengirim tidak ditemukan")
     tx = Transaction(
         supplier_id=supplier["id"],
         supplier_name=supplier["name"],
         bank=supplier["bank"],
         account_number=supplier["account_number"],
+        sender_id=sender["id"] if sender else None,
+        sender_name=sender["name"] if sender else "",
+        sender_account=sender["account_number"] if sender else "",
         amount=payload.amount,
         date=payload.date,
         note=payload.note or "",
@@ -194,11 +256,19 @@ async def update_transaction(tx_id: str, payload: TransactionCreate):
     supplier = await db.suppliers.find_one({"id": payload.supplier_id}, {"_id": 0})
     if not supplier:
         raise HTTPException(status_code=404, detail="Supplier tidak ditemukan")
+    sender = None
+    if payload.sender_id:
+        sender = await db.sender_accounts.find_one({"id": payload.sender_id}, {"_id": 0})
+        if not sender:
+            raise HTTPException(status_code=404, detail="Rekening pengirim tidak ditemukan")
     update = {
         "supplier_id": supplier["id"],
         "supplier_name": supplier["name"],
         "bank": supplier["bank"],
         "account_number": supplier["account_number"],
+        "sender_id": sender["id"] if sender else None,
+        "sender_name": sender["name"] if sender else "",
+        "sender_account": sender["account_number"] if sender else "",
         "amount": payload.amount,
         "date": payload.date,
         "note": payload.note or "",
@@ -286,9 +356,20 @@ async def seed(force: bool = False):
     if force:
         await db.suppliers.delete_many({})
         await db.transactions.delete_many({})
+        await db.sender_accounts.delete_many({})
     existing = await db.suppliers.count_documents({})
     if existing > 0 and not force:
         return {"seeded": False, "message": "Data sudah ada"}
+
+    senders_data = [
+        {"name": "Rekening Operasional BCA", "account_number": "5210012345"},
+        {"name": "Rekening Giro Mandiri", "account_number": "1230098765432"},
+    ]
+    senders = []
+    for s in senders_data:
+        obj = SenderAccount(**s)
+        senders.append(obj)
+        await db.sender_accounts.insert_one(obj.model_dump())
 
     suppliers_data = [
         {"name": "PT Sumber Baja Makmur (Supplier A)", "bank": "BCA", "account_number": "1234567890", "contact": "Andi - 0812xxxx"},
@@ -306,14 +387,16 @@ async def seed(force: bool = False):
     d8 = today.replace(day=8) if today.day <= 8 else today + timedelta(days=1)
     d9 = d8 + timedelta(days=1)
     tx_data = [
-        (suppliers[0], 100_000_000, d8, "Invoice #1029 Bahan Baku Baja"),
-        (suppliers[1], 150_000_000, d8, "DP Order Logam Batch 3"),
-        (suppliers[2], 120_000_000, d9, "Pelunasan Kimia Industri"),
+        (suppliers[0], senders[0], 100_000_000, d8, "Invoice #1029 Bahan Baku Baja"),
+        (suppliers[1], senders[0], 150_000_000, d8, "DP Order Logam Batch 3"),
+        (suppliers[2], senders[1], 120_000_000, d9, "Pelunasan Kimia Industri"),
     ]
-    for sup, amt, d, note in tx_data:
+    for sup, snd, amt, d, note in tx_data:
         tx = Transaction(
             supplier_id=sup.id, supplier_name=sup.name, bank=sup.bank,
-            account_number=sup.account_number, amount=amt, date=d.isoformat(), note=note,
+            account_number=sup.account_number,
+            sender_id=snd.id, sender_name=snd.name, sender_account=snd.account_number,
+            amount=amt, date=d.isoformat(), note=note,
         )
         await db.transactions.insert_one(tx.model_dump())
 

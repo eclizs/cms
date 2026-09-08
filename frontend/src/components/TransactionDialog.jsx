@@ -5,41 +5,60 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { UserPlus, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { UserPlus, AlertTriangle, CheckCircle2, Plus, X } from "lucide-react";
 import { formatRupiah, formatCompact, terbilang, getDayStatus } from "@/lib/format";
 
-export const TransactionDialog = ({ open, onOpenChange, suppliers, editing, dailyTotals, dailyLimit, recommendations, defaultDate, onSubmit, onManageSuppliers }) => {
+export const TransactionDialog = ({ open, onOpenChange, suppliers, senders, editing, dailyTotals, dailyLimit, recommendations, defaultDate, onSubmit, onManageSuppliers, onCreateSender }) => {
   const [supplierId, setSupplierId] = useState("");
+  const [senderId, setSenderId] = useState("");
   const [amount, setAmount] = useState(0);
   const [txDate, setTxDate] = useState("");
   const [note, setNote] = useState("");
+  const [addingSender, setAddingSender] = useState(false);
+  const [newSenderName, setNewSenderName] = useState("");
+  const [newSenderAcc, setNewSenderAcc] = useState("");
 
   useEffect(() => {
     if (!open) return;
+    setAddingSender(false);
+    setNewSenderName("");
+    setNewSenderAcc("");
     if (editing) {
       setSupplierId(editing.supplier_id);
+      setSenderId(editing.sender_id || "");
       setAmount(editing.amount);
       setTxDate(editing.date);
       setNote(editing.note || "");
     } else {
       setSupplierId(suppliers[0]?.id || "");
+      setSenderId(senders[0]?.id || "");
       setAmount(0);
       setTxDate(defaultDate || "");
       setNote("");
     }
-  }, [open, editing, defaultDate, suppliers]);
+  }, [open, editing, defaultDate, suppliers, senders]);
 
   const supplier = suppliers.find((s) => s.id === supplierId);
+  const sender = senders.find((s) => s.id === senderId);
   const existingTotal = (dailyTotals[txDate]?.total || 0) - (editing && editing.date === txDate ? editing.amount : 0);
   const projected = existingTotal + (amount || 0);
   const status = getDayStatus(projected, dailyLimit);
   const over = projected > dailyLimit;
 
-  const canSubmit = supplierId && amount > 0 && txDate;
+  const canSubmit = supplierId && senderId && amount > 0 && txDate;
 
   const submit = () => {
     if (!canSubmit) return;
-    onSubmit({ supplier_id: supplierId, amount, date: txDate, note });
+    onSubmit({ supplier_id: supplierId, sender_id: senderId, amount, date: txDate, note });
+  };
+
+  const saveNewSender = async () => {
+    if (!newSenderName || !newSenderAcc) return;
+    const created = await onCreateSender({ name: newSenderName, account_number: newSenderAcc });
+    if (created?.id) setSenderId(created.id);
+    setAddingSender(false);
+    setNewSenderName("");
+    setNewSenderAcc("");
   };
 
   const suggestions = recommendations?.suggestions || [];
@@ -72,6 +91,47 @@ export const TransactionDialog = ({ open, onOpenChange, suppliers, editing, dail
             </Select>
             {supplier && (
               <p className="text-xs text-muted-foreground mt-1.5 font-mono-num">{supplier.bank} · {supplier.account_number}</p>
+            )}
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between">
+              <Label>Rekening Pengirim</Label>
+              {!addingSender && (
+                <Button variant="ghost" size="sm" className="h-7 text-xs text-primary gap-1" data-testid="add-sender-button" onClick={() => setAddingSender(true)}>
+                  <Plus className="h-3.5 w-3.5" /> Rekening Baru
+                </Button>
+              )}
+            </div>
+            {addingSender ? (
+              <div className="mt-1.5 rounded-xl border border-border bg-muted/30 p-3 space-y-2">
+                <Input data-testid="new-sender-name-input" value={newSenderName} onChange={(e) => setNewSenderName(e.target.value)} placeholder="Nama rekening (mis. Rekening Operasional BCA)" />
+                <Input data-testid="new-sender-account-input" className="font-mono-num" value={newSenderAcc} onChange={(e) => setNewSenderAcc(e.target.value.replace(/[^\d]/g, ""))} placeholder="Nomor rekening" />
+                <div className="flex gap-2">
+                  <Button size="sm" className="rounded-full flex-1 gap-1" data-testid="save-sender-button" onClick={saveNewSender} disabled={!newSenderName || !newSenderAcc}>
+                    <Plus className="h-3.5 w-3.5" /> Simpan
+                  </Button>
+                  <Button size="sm" variant="ghost" className="rounded-full gap-1 text-muted-foreground" onClick={() => setAddingSender(false)}>
+                    <X className="h-3.5 w-3.5" /> Batal
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <>
+                <Select value={senderId} onValueChange={setSenderId}>
+                  <SelectTrigger className="mt-1.5" data-testid="sender-select-dropdown">
+                    <SelectValue placeholder="Pilih rekening pengirim" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {senders.map((s) => (
+                      <SelectItem key={s.id} value={s.id} data-testid={`sender-option-${s.id}`}>{s.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {sender && (
+                  <p className="text-xs text-muted-foreground mt-1.5 font-mono-num">No. Rek: {sender.account_number}</p>
+                )}
+              </>
             )}
           </div>
 

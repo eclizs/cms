@@ -22,6 +22,10 @@ export const api = {
   getSettings: () => client.get("/settings").then((r) => r.data),
   updateSettings: (data) => client.put("/settings", data).then((r) => r.data),
 
+  getSenderAccounts: () => client.get("/sender-accounts").then((r) => r.data),
+  createSenderAccount: (data) => client.post("/sender-accounts", data).then((r) => r.data),
+  deleteSenderAccount: (id) => client.delete(`/sender-accounts/${id}`).then((r) => r.data),
+
   getRecommendations: () => client.get("/recommendations").then((r) => r.data),
 };
 

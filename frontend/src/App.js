@@ -18,6 +18,7 @@ import { DayDetailDialog } from "@/components/DayDetailDialog";
 function App() {
   const { theme, toggle } = useTheme();
   const [suppliers, setSuppliers] = useState([]);
+  const [senders, setSenders] = useState([]);
   const [transactions, setTransactions] = useState([]);
   const [dailyLimit, setDailyLimit] = useState(500_000_000);
   const [recommendations, setRecommendations] = useState({ suggestions: [] });
@@ -34,14 +35,15 @@ function App() {
   const [trashOpen, setTrashOpen] = useState(false);
 
   const loadAll = useCallback(async () => {
-    const [s, t, set, rec, tr] = await Promise.all([
-      api.getSuppliers(), api.getTransactions(), api.getSettings(), api.getRecommendations(), api.getTrash(),
+    const [s, t, set, rec, tr, snd] = await Promise.all([
+      api.getSuppliers(), api.getTransactions(), api.getSettings(), api.getRecommendations(), api.getTrash(), api.getSenderAccounts(),
     ]);
     setSuppliers(s);
     setTransactions(t);
     setDailyLimit(set.daily_limit);
     setRecommendations(rec);
     setTrash(tr);
+    setSenders(snd);
   }, []);
 
   useEffect(() => { loadAll(); }, [loadAll]);
@@ -159,6 +161,18 @@ function App() {
     catch (e) { toast.error(e?.response?.data?.detail || "Gagal menghapus supplier"); }
   };
 
+  const handleCreateSender = async (data) => {
+    try {
+      const created = await api.createSenderAccount(data);
+      setSenders(await api.getSenderAccounts());
+      toast.success("Rekening pengirim ditambahkan");
+      return created;
+    } catch (e) {
+      toast.error("Gagal menambah rekening pengirim");
+      return null;
+    }
+  };
+
   return (
     <div className="App min-h-screen bg-background bg-grid">
       <Header
@@ -216,6 +230,7 @@ function App() {
         open={txOpen}
         onOpenChange={setTxOpen}
         suppliers={suppliers}
+        senders={senders}
         editing={editingTx}
         dailyTotals={dailyTotals}
         dailyLimit={dailyLimit}
@@ -223,6 +238,7 @@ function App() {
         defaultDate={txDefaultDate}
         onSubmit={handleSubmitTx}
         onManageSuppliers={() => setSupplierOpen(true)}
+        onCreateSender={handleCreateSender}
       />
       <DailyLimitDialog open={limitOpen} onOpenChange={setLimitOpen} currentLimit={dailyLimit} onSave={handleSaveLimit} />      <SupplierManager
         open={supplierOpen}

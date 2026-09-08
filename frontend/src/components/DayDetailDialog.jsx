@@ -38,6 +38,7 @@ export const DayDetailDialog = ({ open, onOpenChange, date, transactions, dailyL
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold truncate">{t.supplier_name}</p>
                 <p className="text-xs text-muted-foreground truncate font-mono-num">{t.bank} · {t.account_number}</p>
+                {t.sender_name && <p className="text-xs text-muted-foreground truncate">Dari: {t.sender_name} · <span className="font-mono-num">{t.sender_account}</span></p>}
                 {t.note && <p className="text-xs text-muted-foreground truncate mt-0.5">{t.note}</p>}
               </div>
               <span className="font-mono-num font-semibold text-sm shrink-0">{formatRupiah(t.amount)}</span>
