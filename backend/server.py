@@ -52,6 +52,7 @@ class Transaction(BaseModel):
     amount: int  # rupiah
     date: str  # YYYY-MM-DD
     note: Optional[str] = ""
+    deleted_at: Optional[str] = None
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 
@@ -121,11 +122,37 @@ async def delete_supplier(supplier_id: str):
     return {"ok": True}
 
 
+RETENTION_DAYS = 7
+
+
+async def purge_expired_trash():
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=RETENTION_DAYS)).isoformat()
+    await db.transactions.delete_many({"deleted_at": {"$ne": None, "$lt": cutoff}})
+
+
 # ---------- Transactions ----------
 @api_router.get("/transactions", response_model=List[Transaction])
 async def list_transactions():
-    docs = await db.transactions.find({}, {"_id": 0}).sort("date", 1).to_list(5000)
+    await purge_expired_trash()
+    docs = await db.transactions.find({"deleted_at": None}, {"_id": 0}).sort("date", 1).to_list(5000)
     return docs
+
+
+@api_router.get("/transactions/trash")
+async def list_trash():
+    await purge_expired_trash()
+    docs = await db.transactions.find({"deleted_at": {"$ne": None}}, {"_id": 0}).sort("deleted_at", -1).to_list(5000)
+    result = []
+    for d in docs:
+        try:
+            deleted = datetime.fromisoformat(d["deleted_at"])
+            purge_at = deleted + timedelta(days=RETENTION_DAYS)
+            remaining = (purge_at - datetime.now(timezone.utc)).total_seconds()
+            days_left = max(int(-(-remaining // 86400)), 0)  # ceil
+        except Exception:
+            days_left = RETENTION_DAYS
+        result.append({**d, "days_left": days_left})
+    return result
 
 
 @api_router.post("/transactions", response_model=Transaction)
@@ -170,6 +197,28 @@ async def update_transaction(tx_id: str, payload: TransactionCreate):
 
 @api_router.delete("/transactions/{tx_id}")
 async def delete_transaction(tx_id: str):
+    res = await db.transactions.update_one(
+        {"id": tx_id, "deleted_at": None},
+        {"$set": {"deleted_at": datetime.now(timezone.utc).isoformat()}},
+    )
+    if res.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Transaksi tidak ditemukan")
+    return {"ok": True}
+
+
+@api_router.post("/transactions/{tx_id}/restore")
+async def restore_transaction(tx_id: str):
+    res = await db.transactions.update_one(
+        {"id": tx_id, "deleted_at": {"$ne": None}},
+        {"$set": {"deleted_at": None}},
+    )
+    if res.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Transaksi tidak ditemukan di sampah")
+    return {"ok": True}
+
+
+@api_router.delete("/transactions/{tx_id}/permanent")
+async def permanent_delete_transaction(tx_id: str):
     res = await db.transactions.delete_one({"id": tx_id})
     if res.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Transaksi tidak ditemukan")
@@ -196,7 +245,7 @@ async def recommendations(days: int = 14):
     settings = await get_settings_doc()
     limit = settings["daily_limit"]
     today = date.today()
-    txs = await db.transactions.find({}, {"_id": 0}).to_list(5000)
+    txs = await db.transactions.find({"deleted_at": None}, {"_id": 0}).to_list(5000)
     totals = {}
     for t in txs:
         totals[t["date"]] = totals.get(t["date"], 0) + t["amount"]

@@ -9,6 +9,7 @@ import { Header } from "@/components/Header";
 import { KpiSummary } from "@/components/KpiSummary";
 import { CalendarHeatmap } from "@/components/CalendarHeatmap";
 import { TransactionHistory } from "@/components/TransactionHistory";
+import { TrashDialog } from "@/components/TrashDialog";
 import { DailyLimitDialog } from "@/components/DailyLimitDialog";
 import { TransactionDialog } from "@/components/TransactionDialog";
 import { SupplierManager } from "@/components/SupplierManager";
@@ -29,23 +30,27 @@ function App() {
   const [txDefaultDate, setTxDefaultDate] = useState("");
   const [limitOpen, setLimitOpen] = useState(false);
   const [supplierOpen, setSupplierOpen] = useState(false);
+  const [trash, setTrash] = useState([]);
+  const [trashOpen, setTrashOpen] = useState(false);
 
   const loadAll = useCallback(async () => {
-    const [s, t, set, rec] = await Promise.all([
-      api.getSuppliers(), api.getTransactions(), api.getSettings(), api.getRecommendations(),
+    const [s, t, set, rec, tr] = await Promise.all([
+      api.getSuppliers(), api.getTransactions(), api.getSettings(), api.getRecommendations(), api.getTrash(),
     ]);
     setSuppliers(s);
     setTransactions(t);
     setDailyLimit(set.daily_limit);
     setRecommendations(rec);
+    setTrash(tr);
   }, []);
 
   useEffect(() => { loadAll(); }, [loadAll]);
 
   const refreshDerived = useCallback(async () => {
-    const [t, rec] = await Promise.all([api.getTransactions(), api.getRecommendations()]);
+    const [t, rec, tr] = await Promise.all([api.getTransactions(), api.getRecommendations(), api.getTrash()]);
     setTransactions(t);
     setRecommendations(rec);
+    setTrash(tr);
   }, []);
 
   const dailyTotals = useMemo(() => {
@@ -101,10 +106,30 @@ function App() {
   const handleDeleteTx = async (id) => {
     try {
       await api.deleteTransaction(id);
-      toast.success("Transaksi dihapus");
+      toast.success("Transaksi dipindahkan ke Sampah");
       await refreshDerived();
     } catch (e) {
       toast.error("Gagal menghapus");
+    }
+  };
+
+  const handleRestoreTx = async (id) => {
+    try {
+      await api.restoreTransaction(id);
+      toast.success("Transaksi dipulihkan");
+      await refreshDerived();
+    } catch (e) {
+      toast.error("Gagal memulihkan");
+    }
+  };
+
+  const handlePurgeTx = async (id) => {
+    try {
+      await api.permanentDeleteTransaction(id);
+      toast.success("Transaksi dihapus permanen");
+      await refreshDerived();
+    } catch (e) {
+      toast.error("Gagal menghapus permanen");
     }
   };
 
@@ -169,6 +194,8 @@ function App() {
               transactions={transactions}
               onEdit={(t) => { setEditingTx(t); setTxDefaultDate(""); setTxOpen(true); }}
               onDelete={handleDeleteTx}
+              onOpenTrash={() => setTrashOpen(true)}
+              trashCount={trash.length}
             />
           </div>
         </div>
@@ -197,14 +224,21 @@ function App() {
         onSubmit={handleSubmitTx}
         onManageSuppliers={() => setSupplierOpen(true)}
       />
-      <DailyLimitDialog open={limitOpen} onOpenChange={setLimitOpen} currentLimit={dailyLimit} onSave={handleSaveLimit} />
-      <SupplierManager
+      <DailyLimitDialog open={limitOpen} onOpenChange={setLimitOpen} currentLimit={dailyLimit} onSave={handleSaveLimit} />      <SupplierManager
         open={supplierOpen}
         onOpenChange={setSupplierOpen}
         suppliers={suppliers}
         onCreate={handleCreateSupplier}
         onUpdate={handleUpdateSupplier}
         onDelete={handleDeleteSupplier}
+      />
+
+      <TrashDialog
+        open={trashOpen}
+        onOpenChange={setTrashOpen}
+        trash={trash}
+        onRestore={handleRestoreTx}
+        onPurge={handlePurgeTx}
       />
 
       <Toaster position="top-right" richColors />

@@ -12,9 +12,12 @@ export const api = {
   deleteSupplier: (id) => client.delete(`/suppliers/${id}`).then((r) => r.data),
 
   getTransactions: () => client.get("/transactions").then((r) => r.data),
+  getTrash: () => client.get("/transactions/trash").then((r) => r.data),
   createTransaction: (data) => client.post("/transactions", data).then((r) => r.data),
   updateTransaction: (id, data) => client.put(`/transactions/${id}`, data).then((r) => r.data),
   deleteTransaction: (id) => client.delete(`/transactions/${id}`).then((r) => r.data),
+  restoreTransaction: (id) => client.post(`/transactions/${id}/restore`).then((r) => r.data),
+  permanentDeleteTransaction: (id) => client.delete(`/transactions/${id}/permanent`).then((r) => r.data),
 
   getSettings: () => client.get("/settings").then((r) => r.data),
   updateSettings: (data) => client.put("/settings", data).then((r) => r.data),

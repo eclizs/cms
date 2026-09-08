@@ -1,10 +1,10 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { History, Pencil, Trash2 } from "lucide-react";
+import { History, Pencil, Trash2, Trash } from "lucide-react";
 import { formatRupiah, formatDateLong } from "@/lib/format";
 
-export const TransactionHistory = ({ transactions, onEdit, onDelete }) => {
+export const TransactionHistory = ({ transactions, onEdit, onDelete, onOpenTrash, trashCount = 0 }) => {
   const sorted = [...transactions].sort((a, b) => {
     if (a.date !== b.date) return a.date < b.date ? 1 : -1;
     return (b.created_at || "").localeCompare(a.created_at || "");
@@ -12,11 +12,19 @@ export const TransactionHistory = ({ transactions, onEdit, onDelete }) => {
 
   return (
     <Card className="p-5 sm:p-6 border-border/80" data-testid="transaction-history-panel">
-      <div className="flex items-center gap-2 mb-1">
-        <div className="h-8 w-8 rounded-lg bg-primary/10 text-primary grid place-items-center">
-          <History className="h-4 w-4" />
+      <div className="flex items-center justify-between gap-2 mb-1">
+        <div className="flex items-center gap-2">
+          <div className="h-8 w-8 rounded-lg bg-primary/10 text-primary grid place-items-center">
+            <History className="h-4 w-4" />
+          </div>
+          <h3 className="font-heading text-lg font-bold tracking-tight">Riwayat Transaksi</h3>
         </div>
-        <h3 className="font-heading text-lg font-bold tracking-tight">Riwayat Transaksi</h3>
+        <Button variant="outline" size="sm" className="rounded-full gap-1.5 text-xs relative" data-testid="open-trash-button" onClick={onOpenTrash}>
+          <Trash className="h-3.5 w-3.5" /> Sampah
+          {trashCount > 0 && (
+            <span className="ml-0.5 grid place-items-center min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold">{trashCount}</span>
+          )}
+        </Button>
       </div>
       <p className="text-xs text-muted-foreground mb-4">{sorted.length} transaksi tercatat</p>
 
