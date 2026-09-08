@@ -215,6 +215,38 @@ class TestSenderAccounts:
         session.delete(f"{API}/suppliers/{sup_id}")
 
 
+# ---------- Alias feature ----------
+class TestSupplierAlias:
+    def test_seeded_suppliers_have_aliases(self, session):
+        r = session.get(f"{API}/suppliers")
+        assert r.status_code == 200
+        suppliers = r.json()
+        aliases = {s.get("alias") for s in suppliers}
+        for expected in ["Baja Makmur", "Karya Logam", "Mitra Kimia", "Prima Plastik"]:
+            assert expected in aliases, f"Missing alias {expected} in {aliases}"
+
+    def test_create_supplier_with_alias(self, session):
+        payload = {"name": "TEST_Alias_Sup", "alias": "TEST_ALIAS", "bank": "BCA", "account_number": "77777", "contact": "x"}
+        r = session.post(f"{API}/suppliers", json=payload)
+        assert r.status_code == 200
+        sup = r.json()
+        assert sup["alias"] == "TEST_ALIAS"
+        sid = sup["id"]
+
+        # Persistence check
+        r = session.get(f"{API}/suppliers")
+        found = next(s for s in r.json() if s["id"] == sid)
+        assert found["alias"] == "TEST_ALIAS"
+
+        # Update alias
+        upd = {"name": "TEST_Alias_Sup", "alias": "TEST_ALIAS_2", "bank": "BCA", "account_number": "77777", "contact": "x"}
+        r = session.put(f"{API}/suppliers/{sid}", json=upd)
+        assert r.status_code == 200
+        assert r.json()["alias"] == "TEST_ALIAS_2"
+
+        session.delete(f"{API}/suppliers/{sid}")
+
+
 # ---------- Bug regression: existing supplier + sender submission works ----------
 class TestSupplierNotFoundBugRegression:
     def test_existing_supplier_and_sender_submit_200(self, session):

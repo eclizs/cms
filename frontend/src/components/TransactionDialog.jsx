@@ -1,15 +1,18 @@
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { UserPlus, AlertTriangle, CheckCircle2, Plus, X, Settings2 } from "lucide-react";
+import { UserPlus, AlertTriangle, CheckCircle2, Plus, X, Settings2, ChevronsUpDown, Check } from "lucide-react";
 import { formatRupiah, formatCompact, terbilang, getDayStatus } from "@/lib/format";
 
 export const TransactionDialog = ({ open, onOpenChange, suppliers, senders, editing, dailyTotals, dailyLimit, recommendations, defaultDate, onSubmit, onManageSuppliers, onCreateSender, onManageSenders }) => {
   const [supplierId, setSupplierId] = useState("");
+  const [supplierPickerOpen, setSupplierPickerOpen] = useState(false);
   const [senderId, setSenderId] = useState("");
   const [amount, setAmount] = useState(0);
   const [txDate, setTxDate] = useState("");
@@ -79,16 +82,51 @@ export const TransactionDialog = ({ open, onOpenChange, suppliers, senders, edit
                 <UserPlus className="h-3.5 w-3.5" /> Kelola Supplier
               </Button>
             </div>
-            <Select value={supplierId} onValueChange={setSupplierId}>
-              <SelectTrigger className="mt-1.5" data-testid="supplier-select-dropdown">
-                <SelectValue placeholder="Pilih supplier" />
-              </SelectTrigger>
-              <SelectContent>
-                {suppliers.map((s) => (
-                  <SelectItem key={s.id} value={s.id} data-testid={`supplier-option-${s.id}`}>{s.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Popover open={supplierPickerOpen} onOpenChange={setSupplierPickerOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  role="combobox"
+                  data-testid="supplier-select-dropdown"
+                  className="mt-1.5 w-full justify-between font-normal"
+                >
+                  <span className={`truncate ${supplier ? "" : "text-muted-foreground"}`}>
+                    {supplier ? supplier.name : "Cari & pilih supplier..."}
+                  </span>
+                  <ChevronsUpDown className="h-4 w-4 opacity-50 shrink-0" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="p-0 w-[--radix-popover-trigger-width]" align="start">
+                <Command
+                  filter={(value, search) => (value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0)}
+                >
+                  <CommandInput placeholder="Ketik nama atau alias..." data-testid="supplier-search-input" />
+                  <CommandList>
+                    <CommandEmpty>Supplier tidak ditemukan.</CommandEmpty>
+                    <CommandGroup>
+                      {suppliers.map((s) => (
+                        <CommandItem
+                          key={s.id}
+                          value={`${s.name} ${s.alias || ""} ${s.bank} ${s.account_number}`}
+                          data-testid={`supplier-option-${s.id}`}
+                          onSelect={() => { setSupplierId(s.id); setSupplierPickerOpen(false); }}
+                        >
+                          <Check className={`mr-2 h-4 w-4 ${supplierId === s.id ? "opacity-100" : "opacity-0"}`} />
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="truncate font-medium">{s.name}</span>
+                              {s.alias && <span className="text-[10px] font-semibold uppercase tracking-wide text-primary bg-primary/10 rounded-full px-1.5 py-0.5 shrink-0">{s.alias}</span>}
+                            </div>
+                            <span className="text-xs text-muted-foreground font-mono-num">{s.bank} · {s.account_number}</span>
+                          </div>
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
             {supplier && (
               <p className="text-xs text-muted-foreground mt-1.5 font-mono-num">{supplier.bank} · {supplier.account_number}</p>
             )}

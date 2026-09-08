@@ -7,7 +7,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@
 import { Pencil, Trash2, Plus, X, Building2 } from "lucide-react";
 
 const BANKS = ["BCA", "Mandiri", "BRI", "BNI", "CIMB Niaga", "Danamon", "Permata", "BSI", "Lainnya"];
-const EMPTY = { name: "", bank: "BCA", account_number: "", contact: "" };
+const EMPTY = { name: "", alias: "", bank: "BCA", account_number: "", contact: "" };
 
 export const SupplierManager = ({ open, onOpenChange, suppliers, onCreate, onUpdate, onDelete }) => {
   const [form, setForm] = useState(EMPTY);
@@ -24,7 +24,7 @@ export const SupplierManager = ({ open, onOpenChange, suppliers, onCreate, onUpd
 
   const startEdit = (s) => {
     setEditId(s.id);
-    setForm({ name: s.name, bank: s.bank, account_number: s.account_number, contact: s.contact || "" });
+    setForm({ name: s.name, alias: s.alias || "", bank: s.bank, account_number: s.account_number, contact: s.contact || "" });
   };
 
   return (
@@ -57,13 +57,17 @@ export const SupplierManager = ({ open, onOpenChange, suppliers, onCreate, onUpd
               {editId ? "Update" : "Tambah"}
             </Button>
           </div>
-          <div className="sm:col-span-5 flex items-center gap-3">
-            <div className="flex-1">
+          <div className="sm:col-span-5 flex flex-col sm:flex-row items-start sm:items-center gap-3">
+            <div className="w-full sm:flex-1">
+              <Label className="text-xs">Beneficiary Alias</Label>
+              <Input data-testid="supplier-alias-input" className="mt-1" value={form.alias} onChange={(e) => setForm({ ...form, alias: e.target.value })} placeholder="Nama singkat untuk pencarian (mis. Baja Makmur)" />
+            </div>
+            <div className="w-full sm:flex-1">
               <Label className="text-xs">Kontak / Sales (opsional)</Label>
               <Input data-testid="supplier-contact-input" className="mt-1" value={form.contact} onChange={(e) => setForm({ ...form, contact: e.target.value })} placeholder="Nama & no. HP" />
             </div>
             {editId && (
-              <Button variant="ghost" size="sm" className="mt-5 gap-1 text-muted-foreground" onClick={reset}><X className="h-4 w-4" /> Batal edit</Button>
+              <Button variant="ghost" size="sm" className="mt-1 sm:mt-5 gap-1 text-muted-foreground shrink-0" onClick={reset}><X className="h-4 w-4" /> Batal edit</Button>
             )}
           </div>
         </div>
@@ -76,7 +80,10 @@ export const SupplierManager = ({ open, onOpenChange, suppliers, onCreate, onUpd
                 <Building2 className="h-4 w-4" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold truncate">{s.name}</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-semibold truncate">{s.name}</p>
+                  {s.alias && <span className="text-[10px] font-semibold uppercase tracking-wide text-primary bg-primary/10 rounded-full px-1.5 py-0.5 shrink-0">{s.alias}</span>}
+                </div>
                 <p className="text-xs text-muted-foreground font-mono-num">{s.bank} · {s.account_number}{s.contact ? ` · ${s.contact}` : ""}</p>
               </div>
               <Button variant="ghost" size="icon" className="h-8 w-8" data-testid={`edit-supplier-${s.id}`} onClick={() => startEdit(s)}><Pencil className="h-4 w-4" /></Button>

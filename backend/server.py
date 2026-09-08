@@ -29,6 +29,7 @@ class Supplier(BaseModel):
     model_config = ConfigDict(populate_by_name=True, extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     name: str
+    alias: Optional[str] = ""
     bank: str
     account_number: str
     contact: Optional[str] = ""
@@ -37,6 +38,7 @@ class Supplier(BaseModel):
 
 class SupplierCreate(BaseModel):
     name: str
+    alias: Optional[str] = ""
     bank: str
     account_number: str
     contact: Optional[str] = ""
@@ -372,10 +374,10 @@ async def seed(force: bool = False):
         await db.sender_accounts.insert_one(obj.model_dump())
 
     suppliers_data = [
-        {"name": "PT Sumber Baja Makmur (Supplier A)", "bank": "BCA", "account_number": "1234567890", "contact": "Andi - 0812xxxx"},
-        {"name": "CV Karya Logam (Supplier B)", "bank": "Mandiri", "account_number": "1440099887766", "contact": "Budi - 0813xxxx"},
-        {"name": "PT Mitra Kimia Nusantara (Supplier C)", "bank": "BRI", "account_number": "002201998877", "contact": "Citra - 0821xxxx"},
-        {"name": "UD Prima Plastik (Supplier D)", "bank": "BNI", "account_number": "0998877665", "contact": "Dewi - 0856xxxx"},
+        {"name": "PT Sumber Baja Makmur (Supplier A)", "alias": "Baja Makmur", "bank": "BCA", "account_number": "1234567890", "contact": "Andi - 0812xxxx"},
+        {"name": "CV Karya Logam (Supplier B)", "alias": "Karya Logam", "bank": "Mandiri", "account_number": "1440099887766", "contact": "Budi - 0813xxxx"},
+        {"name": "PT Mitra Kimia Nusantara (Supplier C)", "alias": "Mitra Kimia", "bank": "BRI", "account_number": "002201998877", "contact": "Citra - 0821xxxx"},
+        {"name": "UD Prima Plastik (Supplier D)", "alias": "Prima Plastik", "bank": "BNI", "account_number": "0998877665", "contact": "Dewi - 0856xxxx"},
     ]
     suppliers = []
     for s in suppliers_data:
