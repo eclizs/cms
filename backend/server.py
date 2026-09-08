@@ -123,11 +123,24 @@ async def delete_supplier(supplier_id: str):
 
 
 RETENTION_DAYS = 7
+MAX_AGE_MONTHS = 2
+
+
+def _months_ago(d: date, n: int) -> date:
+    month = d.month - n
+    year = d.year
+    while month <= 0:
+        month += 12
+        year -= 1
+    return date(year, month, 1)
 
 
 async def purge_expired_trash():
     cutoff = (datetime.now(timezone.utc) - timedelta(days=RETENTION_DAYS)).isoformat()
     await db.transactions.delete_many({"deleted_at": {"$ne": None, "$lt": cutoff}})
+    # permanently remove transactions whose transfer date is older than 2 months
+    old_cutoff = _months_ago(date.today(), MAX_AGE_MONTHS).isoformat()
+    await db.transactions.delete_many({"date": {"$lt": old_cutoff}})
 
 
 # ---------- Transactions ----------
