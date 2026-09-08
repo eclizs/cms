@@ -151,7 +151,6 @@ function App() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
         <div>
           <h1 className="font-heading text-2xl sm:text-3xl font-extrabold tracking-tight">Dashboard Alokasi Transfer</h1>
-          <p className="text-sm text-muted-foreground mt-1">Sebar beban transfer supplier secara merata agar tidak menumpuk di satu tanggal.</p>
         </div>
 
         <KpiSummary transactions={monthTransactions} dailyLimit={dailyLimit} monthLabel={MONTH_NAMES[month.getMonth()]} />
