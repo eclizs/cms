@@ -8,7 +8,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { Header } from "@/components/Header";
 import { KpiSummary } from "@/components/KpiSummary";
 import { CalendarHeatmap } from "@/components/CalendarHeatmap";
-import { SmartRecommendations } from "@/components/SmartRecommendations";
+import { TransactionHistory } from "@/components/TransactionHistory";
 import { DailyLimitDialog } from "@/components/DailyLimitDialog";
 import { TransactionDialog } from "@/components/TransactionDialog";
 import { SupplierManager } from "@/components/SupplierManager";
@@ -134,10 +134,6 @@ function App() {
     catch (e) { toast.error(e?.response?.data?.detail || "Gagal menghapus supplier"); }
   };
 
-  const pickSuggestion = (date) => {
-    openNewTransaction(date);
-  };
-
   return (
     <div className="App min-h-screen bg-background bg-grid">
       <Header
@@ -169,7 +165,11 @@ function App() {
             />
           </div>
           <div className="lg:col-span-4 space-y-6">
-            <SmartRecommendations recommendations={recommendations} onPick={pickSuggestion} />
+            <TransactionHistory
+              transactions={transactions}
+              onEdit={(t) => { setEditingTx(t); setTxDefaultDate(""); setTxOpen(true); }}
+              onDelete={handleDeleteTx}
+            />
           </div>
         </div>
       </main>
