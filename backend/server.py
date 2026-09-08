@@ -137,7 +137,31 @@ async def delete_sender_account(sender_id: str):
     return {"ok": True}
 
 
+class SupplierImport(BaseModel):
+    suppliers: List[SupplierCreate]
+
+
 # ---------- Suppliers ----------
+@api_router.post("/suppliers/import")
+async def import_suppliers(payload: SupplierImport):
+    inserted, skipped = 0, 0
+    for item in payload.suppliers:
+        name = (item.name or "").strip()
+        acc = (item.account_number or "").strip()
+        if not name or not acc:
+            skipped += 1
+            continue
+        dup = await db.suppliers.find_one({"name": name, "account_number": acc})
+        if dup:
+            skipped += 1
+            continue
+        sup = Supplier(name=name, alias=(item.alias or "").strip(), bank=(item.bank or "").strip(),
+                       account_number=acc, contact=(item.contact or "").strip())
+        await db.suppliers.insert_one(sup.model_dump())
+        inserted += 1
+    return {"inserted": inserted, "skipped": skipped}
+
+
 @api_router.get("/suppliers", response_model=List[Supplier])
 async def list_suppliers():
     docs = await db.suppliers.find({}, {"_id": 0}).sort("name", 1).to_list(1000)
