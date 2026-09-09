@@ -228,8 +228,10 @@ function App() {
               month={month}
               dailyTotals={dailyTotals}
               dailyLimit={dailyLimit}
+              transactions={transactions}
               selectedDate={selectedDate}
               onSelectDay={selectDay}
+              onResultClick={(iso) => { const d = new Date(iso + "T00:00:00"); setMonth(new Date(d.getFullYear(), d.getMonth(), 1)); selectDay(iso); }}
               onPrev={() => setMonth(new Date(month.getFullYear(), month.getMonth() - 1, 1))}
               onNext={() => setMonth(new Date(month.getFullYear(), month.getMonth() + 1, 1))}
               onToday={() => { const t = new Date(); setMonth(new Date(t.getFullYear(), t.getMonth(), 1)); selectDay(toISODate(t)); }}
