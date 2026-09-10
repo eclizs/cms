@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Receipt, ArrowUpRight, Clock } from "lucide-react";
+import { Receipt, ArrowUpRight, Clock, ChevronDown, ChevronUp } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { formatRupiah, formatRelativeTime, formatDateLong, toISODate } from "@/lib/format";
 
 const FILTERS = [
@@ -19,6 +20,9 @@ const dateStr = (offsetDays) => {
 
 export const RecentSummary = ({ transactions }) => {
   const [filter, setFilter] = useState("today");
+  const [visibleCount, setVisibleCount] = useState(6);
+
+  useEffect(() => { setVisibleCount(6); }, [filter]);
 
   const today = dateStr(0);
   const yesterday = dateStr(1);
@@ -86,7 +90,7 @@ export const RecentSummary = ({ transactions }) => {
         {filtered.length === 0 && (
           <p className="text-sm text-muted-foreground py-6 text-center" data-testid="recent-empty">Tidak ada transaksi pada periode "{activeLabel}".</p>
         )}
-        {filtered.slice(0, 6).map((t) => (
+        {filtered.slice(0, visibleCount).map((t) => (
           <div key={t.id} data-testid={`recent-tx-${t.id}`} className="flex items-center gap-3 rounded-xl border border-border p-2.5">
             <div className="h-8 w-8 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 grid place-items-center shrink-0">
               <ArrowUpRight className="h-4 w-4" />
@@ -104,7 +108,30 @@ export const RecentSummary = ({ transactions }) => {
           </div>
         ))}
         {filtered.length > 6 && (
-          <p className="text-[11px] text-muted-foreground text-center pt-1">+{filtered.length - 6} transaksi lainnya</p>
+          <div className="flex items-center justify-center gap-2 pt-1">
+            {visibleCount < filtered.length && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="rounded-full text-xs gap-1"
+                data-testid="recent-load-more"
+                onClick={() => setVisibleCount((c) => c + 10)}
+              >
+                <ChevronDown className="h-3.5 w-3.5" /> Tampilkan lebih banyak ({filtered.length - visibleCount})
+              </Button>
+            )}
+            {visibleCount > 6 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="rounded-full text-xs gap-1 text-muted-foreground"
+                data-testid="recent-show-less"
+                onClick={() => setVisibleCount(6)}
+              >
+                <ChevronUp className="h-3.5 w-3.5" /> Lebih sedikit
+              </Button>
+            )}
+          </div>
         )}
       </div>
     </Card>
