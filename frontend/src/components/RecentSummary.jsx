@@ -18,11 +18,14 @@ const dateStr = (offsetDays) => {
   return toISODate(d);
 };
 
-export const RecentSummary = ({ transactions }) => {
+export const RecentSummary = ({ transactions, suppliers = [] }) => {
   const [filter, setFilter] = useState("today");
   const [visibleCount, setVisibleCount] = useState(6);
 
   useEffect(() => { setVisibleCount(6); }, [filter]);
+
+  const aliasById = {};
+  suppliers.forEach((s) => { if (s.alias) aliasById[s.id] = s.alias; });
 
   const today = dateStr(0);
   const yesterday = dateStr(1);
@@ -96,7 +99,12 @@ export const RecentSummary = ({ transactions }) => {
               <ArrowUpRight className="h-4 w-4" />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold truncate">{t.supplier_name}</p>
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-semibold truncate">{t.supplier_name}</p>
+                {aliasById[t.supplier_id] && (
+                  <span data-testid={`recent-alias-${t.id}`} className="text-[10px] font-semibold uppercase tracking-wide text-primary bg-primary/10 rounded-full px-1.5 py-0.5 shrink-0">{aliasById[t.supplier_id]}</span>
+                )}
+              </div>
               <p className="text-xs text-muted-foreground truncate">
                 {t.sender_name ? `Dari ${t.sender_name} · ` : ""}{formatDateLong(t.date)}
               </p>

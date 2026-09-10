@@ -220,7 +220,7 @@ function App() {
 
         <KpiSummary transactions={monthTransactions} dailyLimit={dailyLimit} monthLabel={MONTH_NAMES[month.getMonth()]} />
 
-        <RecentSummary transactions={transactions} />
+        <RecentSummary transactions={transactions} suppliers={suppliers} />
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           <div className="lg:col-span-8">
