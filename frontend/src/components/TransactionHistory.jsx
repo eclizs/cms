@@ -4,10 +4,7 @@ import { History, Pencil, Trash2, Trash } from "lucide-react";
 import { formatRupiah, formatDateLong } from "@/lib/format";
 
 export const TransactionHistory = ({ transactions, onEdit, onDelete, onOpenTrash, trashCount = 0 }) => {
-  const sorted = [...transactions].sort((a, b) => {
-    if (a.date !== b.date) return a.date < b.date ? 1 : -1;
-    return (b.created_at || "").localeCompare(a.created_at || "");
-  });
+  const sorted = [...transactions].sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""));
 
   return (
     <Card className="p-5 sm:p-6 border-border/80" data-testid="transaction-history-panel">
@@ -47,7 +44,7 @@ export const TransactionHistory = ({ transactions, onEdit, onDelete, onOpenTrash
               </div>
               {t.note && <p className="text-xs text-muted-foreground truncate mt-1">{t.note}</p>}
               <div className="flex items-center justify-between mt-2">
-                <span className="text-[11px] text-muted-foreground">{formatDateLong(t.date)}</span>
+                <span className="text-[11px] text-muted-foreground">{formatDateLong(t.date)}{t.transfer_time ? ` · ${t.transfer_time}` : ""}</span>
                 <div className="flex opacity-70 group-hover:opacity-100 transition-opacity">
                   <Button variant="ghost" size="icon" className="h-7 w-7" data-testid={`history-edit-${t.id}`} onClick={() => onEdit(t)}><Pencil className="h-3.5 w-3.5" /></Button>
                   <Button variant="ghost" size="icon" className="h-7 w-7 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40" data-testid={`history-delete-${t.id}`} onClick={() => onDelete(t.id)}><Trash2 className="h-3.5 w-3.5" /></Button>

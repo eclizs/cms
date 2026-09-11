@@ -16,6 +16,7 @@ export const TransactionDialog = ({ open, onOpenChange, suppliers, senders, edit
   const [senderId, setSenderId] = useState("");
   const [amount, setAmount] = useState(0);
   const [txDate, setTxDate] = useState("");
+  const [txTime, setTxTime] = useState("");
   const [note, setNote] = useState("");
   const [addingSender, setAddingSender] = useState(false);
   const [newSenderName, setNewSenderName] = useState("");
@@ -31,12 +32,15 @@ export const TransactionDialog = ({ open, onOpenChange, suppliers, senders, edit
       setSenderId(editing.sender_id || "");
       setAmount(editing.amount);
       setTxDate(editing.date);
+      setTxTime(editing.transfer_time || "");
       setNote(editing.note || "");
     } else {
+      const now = new Date();
       setSupplierId(suppliers[0]?.id || "");
       setSenderId(senders[0]?.id || "");
       setAmount(0);
       setTxDate(defaultDate || "");
+      setTxTime(`${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`);
       setNote("");
     }
   }, [open, editing, defaultDate]);
@@ -52,7 +56,7 @@ export const TransactionDialog = ({ open, onOpenChange, suppliers, senders, edit
 
   const submit = () => {
     if (!canSubmit) return;
-    onSubmit({ supplier_id: supplierId, sender_id: senderId, amount, date: txDate, note });
+    onSubmit({ supplier_id: supplierId, sender_id: senderId, amount, date: txDate, transfer_time: txTime, note });
   };
 
   const saveNewSender = async () => {
@@ -193,8 +197,16 @@ export const TransactionDialog = ({ open, onOpenChange, suppliers, senders, edit
           </div>
 
           <div>
-            <Label htmlFor="date">Tanggal Transfer</Label>
-            <Input id="date" data-testid="transaction-date-picker" type="date" className="mt-1.5" value={txDate} onChange={(e) => setTxDate(e.target.value)} />
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label htmlFor="date">Tanggal Transfer</Label>
+                <Input id="date" data-testid="transaction-date-picker" type="date" className="mt-1.5" value={txDate} onChange={(e) => setTxDate(e.target.value)} />
+              </div>
+              <div>
+                <Label htmlFor="time">Jam Transfer</Label>
+                <Input id="time" data-testid="transaction-time-picker" type="time" className="mt-1.5" value={txTime} onChange={(e) => setTxTime(e.target.value)} />
+              </div>
+            </div>
             {suggestions.length > 0 && (
               <div className="flex flex-wrap gap-1.5 mt-2">
                 <span className="text-[11px] text-muted-foreground self-center">Saran sepi:</span>

@@ -57,6 +57,7 @@ class Transaction(BaseModel):
     sender_account: Optional[str] = ""
     amount: int  # rupiah
     date: str  # YYYY-MM-DD
+    transfer_time: Optional[str] = ""  # HH:MM
     note: Optional[str] = ""
     deleted_at: Optional[str] = None
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
@@ -67,6 +68,7 @@ class TransactionCreate(BaseModel):
     sender_id: Optional[str] = None
     amount: int
     date: str
+    transfer_time: Optional[str] = ""
     note: Optional[str] = ""
 
 
@@ -269,6 +271,7 @@ async def create_transaction(payload: TransactionCreate):
         sender_account=sender["account_number"] if sender else "",
         amount=payload.amount,
         date=payload.date,
+        transfer_time=payload.transfer_time or "",
         note=payload.note or "",
     )
     await db.transactions.insert_one(tx.model_dump())
@@ -298,6 +301,7 @@ async def update_transaction(tx_id: str, payload: TransactionCreate):
         "sender_account": sender["account_number"] if sender else "",
         "amount": payload.amount,
         "date": payload.date,
+        "transfer_time": payload.transfer_time or "",
         "note": payload.note or "",
     }
     await db.transactions.update_one({"id": tx_id, "deleted_at": None}, {"$set": update})

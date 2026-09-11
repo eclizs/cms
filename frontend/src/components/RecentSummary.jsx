@@ -40,7 +40,7 @@ export const RecentSummary = ({ transactions, suppliers = [] }) => {
 
   const filtered = transactions
     .filter(matches)
-    .sort((a, b) => (a.date !== b.date ? (a.date < b.date ? 1 : -1) : (b.created_at || "").localeCompare(a.created_at || "")));
+    .sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""));
 
   const total = filtered.reduce((s, t) => s + t.amount, 0);
   const dateCount = new Set(filtered.map((t) => t.date)).size;
@@ -106,7 +106,7 @@ export const RecentSummary = ({ transactions, suppliers = [] }) => {
                 )}
               </div>
               <p className="text-xs text-muted-foreground truncate">
-                {t.sender_name ? `Dari ${t.sender_name} · ` : ""}{formatDateLong(t.date)}
+                {t.sender_name ? `Dari ${t.sender_name} · ` : ""}{formatDateLong(t.date)}{t.transfer_time ? ` · ${t.transfer_time}` : ""}
               </p>
             </div>
             <div className="text-right shrink-0">
