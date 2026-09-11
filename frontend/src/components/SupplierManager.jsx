@@ -17,16 +17,21 @@ export const SupplierManager = ({ open, onOpenChange, suppliers, onCreate, onUpd
 
   const reset = () => { setForm(EMPTY); setEditId(null); setConfirmDup(false); };
 
-  const dupes = !editId && form.name.trim()
+  const dupName = !editId && form.name.trim()
     ? suppliers.filter((s) => s.name.trim().toLowerCase() === form.name.trim().toLowerCase())
     : [];
+  const dupAcc = !editId && form.account_number.trim()
+    ? suppliers.filter((s) => (s.account_number || "").trim() === form.account_number.trim())
+    : [];
+  const hasDup = dupName.length > 0 || dupAcc.length > 0;
 
   const setName = (name) => { setForm({ ...form, name }); setConfirmDup(false); };
+  const setAccount = (account_number) => { setForm({ ...form, account_number }); setConfirmDup(false); };
 
   const submit = () => {
     if (!form.name || !form.account_number) return;
     if (editId) { onUpdate(editId, form); reset(); return; }
-    if (dupes.length > 0 && !confirmDup) { setConfirmDup(true); return; }
+    if (hasDup && !confirmDup) { setConfirmDup(true); return; }
     onCreate(form);
     reset();
   };
@@ -64,24 +69,26 @@ export const SupplierManager = ({ open, onOpenChange, suppliers, onCreate, onUpd
           </div>
           <div>
             <Label className="text-xs">No. Rekening</Label>
-            <Input data-testid="supplier-account-input" className="mt-1 font-mono-num" value={form.account_number} onChange={(e) => setForm({ ...form, account_number: e.target.value.replace(/[^\d]/g, "") })} placeholder="0123456789" />
+            <Input data-testid="supplier-account-input" className="mt-1 font-mono-num" value={form.account_number} onChange={(e) => setAccount(e.target.value.replace(/[^\d]/g, ""))} placeholder="0123456789" />
           </div>
           <div className="flex items-end">
-            <Button data-testid="save-supplier-button" className={`w-full rounded-full font-semibold gap-1 ${confirmDup && dupes.length ? "bg-amber-500 hover:bg-amber-600 text-white" : ""}`} onClick={submit} disabled={!form.name || !form.account_number}>
+            <Button data-testid="save-supplier-button" className={`w-full rounded-full font-semibold gap-1 ${confirmDup && hasDup ? "bg-amber-500 hover:bg-amber-600 text-white" : ""}`} onClick={submit} disabled={!form.name || !form.account_number}>
               {editId ? <Pencil className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-              {editId ? "Update" : confirmDup && dupes.length ? "Tetap Tambah" : "Tambah"}
+              {editId ? "Update" : confirmDup && hasDup ? "Tetap Tambah" : "Tambah"}
             </Button>
           </div>
 
-          {confirmDup && dupes.length > 0 && (
+          {confirmDup && hasDup && (
             <div data-testid="supplier-duplicate-warning" className="sm:col-span-5 flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-950/40 dark:border-amber-900 p-3">
               <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
-              <div className="text-xs text-amber-800 dark:text-amber-200">
-                <p className="font-semibold">Supplier dengan nama ini sudah terdaftar!</p>
-                <p className="mt-0.5">
-                  Sudah ada {dupes.length} data untuk "{form.name.trim()}": {dupes.map((d) => `${d.bank} · ${d.account_number}`).join(", ")}.
-                  Klik <span className="font-semibold">"Tetap Tambah"</span> bila memang ingin menambahkan lagi.
-                </p>
+              <div className="text-xs text-amber-800 dark:text-amber-200 space-y-1">
+                {dupAcc.length > 0 && (
+                  <p data-testid="dup-account-msg"><span className="font-semibold">Nomor rekening sudah dipakai!</span> Rekening {form.account_number} sudah terdaftar untuk: {dupAcc.map((d) => `${d.name} (${d.bank})`).join(", ")}.</p>
+                )}
+                {dupName.length > 0 && (
+                  <p data-testid="dup-name-msg"><span className="font-semibold">Nama supplier sudah terdaftar!</span> Ada {dupName.length} data untuk "{form.name.trim()}": {dupName.map((d) => `${d.bank} · ${d.account_number}`).join(", ")}.</p>
+                )}
+                <p>Klik <span className="font-semibold">"Tetap Tambah"</span> bila memang ingin menambahkan lagi.</p>
               </div>
             </div>
           )}
