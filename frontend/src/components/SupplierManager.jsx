@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { Pencil, Trash2, Plus, X, Building2 } from "lucide-react";
+import { Pencil, Trash2, Plus, X, Building2, Search, AlertTriangle } from "lucide-react";
 
 const BANKS = ["BCA", "Mandiri", "BRI", "BNI", "CIMB Niaga", "Danamon", "Permata", "BSI", "Lainnya"];
 const EMPTY = { name: "", alias: "", bank: "BCA", account_number: "", contact: "" };
@@ -12,23 +12,38 @@ const EMPTY = { name: "", alias: "", bank: "BCA", account_number: "", contact: "
 export const SupplierManager = ({ open, onOpenChange, suppliers, onCreate, onUpdate, onDelete }) => {
   const [form, setForm] = useState(EMPTY);
   const [editId, setEditId] = useState(null);
+  const [confirmDup, setConfirmDup] = useState(false);
+  const [search, setSearch] = useState("");
 
-  const reset = () => { setForm(EMPTY); setEditId(null); };
+  const reset = () => { setForm(EMPTY); setEditId(null); setConfirmDup(false); };
+
+  const dupes = !editId && form.name.trim()
+    ? suppliers.filter((s) => s.name.trim().toLowerCase() === form.name.trim().toLowerCase())
+    : [];
+
+  const setName = (name) => { setForm({ ...form, name }); setConfirmDup(false); };
 
   const submit = () => {
     if (!form.name || !form.account_number) return;
-    if (editId) onUpdate(editId, form);
-    else onCreate(form);
+    if (editId) { onUpdate(editId, form); reset(); return; }
+    if (dupes.length > 0 && !confirmDup) { setConfirmDup(true); return; }
+    onCreate(form);
     reset();
   };
 
   const startEdit = (s) => {
     setEditId(s.id);
+    setConfirmDup(false);
     setForm({ name: s.name, alias: s.alias || "", bank: s.bank, account_number: s.account_number, contact: s.contact || "" });
   };
 
+  const q = search.trim().toLowerCase();
+  const filtered = suppliers.filter((s) =>
+    !q || s.name.toLowerCase().includes(q) || (s.alias || "").toLowerCase().includes(q) || (s.account_number || "").includes(q)
+  );
+
   return (
-    <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); if (!v) reset(); }}>
+    <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); if (!v) { reset(); setSearch(""); } }}>
       <DialogContent className="sm:max-w-2xl max-h-[92vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="font-heading">Kelola Supplier</DialogTitle>
@@ -38,7 +53,7 @@ export const SupplierManager = ({ open, onOpenChange, suppliers, onCreate, onUpd
         <div className="grid sm:grid-cols-5 gap-3 rounded-xl border border-border bg-muted/30 p-4">
           <div className="sm:col-span-2">
             <Label className="text-xs">Nama Supplier</Label>
-            <Input data-testid="supplier-name-input" className="mt-1" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="PT / CV / Nama" />
+            <Input data-testid="supplier-name-input" className="mt-1" value={form.name} onChange={(e) => setName(e.target.value)} placeholder="PT / CV / Nama" />
           </div>
           <div>
             <Label className="text-xs">Bank</Label>
@@ -52,11 +67,25 @@ export const SupplierManager = ({ open, onOpenChange, suppliers, onCreate, onUpd
             <Input data-testid="supplier-account-input" className="mt-1 font-mono-num" value={form.account_number} onChange={(e) => setForm({ ...form, account_number: e.target.value.replace(/[^\d]/g, "") })} placeholder="0123456789" />
           </div>
           <div className="flex items-end">
-            <Button data-testid="save-supplier-button" className="w-full rounded-full font-semibold gap-1" onClick={submit} disabled={!form.name || !form.account_number}>
+            <Button data-testid="save-supplier-button" className={`w-full rounded-full font-semibold gap-1 ${confirmDup && dupes.length ? "bg-amber-500 hover:bg-amber-600 text-white" : ""}`} onClick={submit} disabled={!form.name || !form.account_number}>
               {editId ? <Pencil className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-              {editId ? "Update" : "Tambah"}
+              {editId ? "Update" : confirmDup && dupes.length ? "Tetap Tambah" : "Tambah"}
             </Button>
           </div>
+
+          {confirmDup && dupes.length > 0 && (
+            <div data-testid="supplier-duplicate-warning" className="sm:col-span-5 flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-950/40 dark:border-amber-900 p-3">
+              <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+              <div className="text-xs text-amber-800 dark:text-amber-200">
+                <p className="font-semibold">Supplier dengan nama ini sudah terdaftar!</p>
+                <p className="mt-0.5">
+                  Sudah ada {dupes.length} data untuk "{form.name.trim()}": {dupes.map((d) => `${d.bank} · ${d.account_number}`).join(", ")}.
+                  Klik <span className="font-semibold">"Tetap Tambah"</span> bila memang ingin menambahkan lagi.
+                </p>
+              </div>
+            </div>
+          )}
+
           <div className="sm:col-span-5 flex flex-col sm:flex-row items-start sm:items-center gap-3">
             <div className="w-full sm:flex-1">
               <Label className="text-xs">Beneficiary Alias</Label>
@@ -72,9 +101,29 @@ export const SupplierManager = ({ open, onOpenChange, suppliers, onCreate, onUpd
           </div>
         </div>
 
-        <div className="space-y-2 mt-1">
+        <div className="relative mt-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+          <Input
+            data-testid="supplier-search-input"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Cari supplier: nama, alias, atau nomor rekening..."
+            className="pl-9 pr-9 rounded-full"
+          />
+          {search && (
+            <button data-testid="supplier-search-clear" onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+        <p className="text-[11px] text-muted-foreground -mt-1">{filtered.length} dari {suppliers.length} supplier</p>
+
+        <div className="space-y-2">
           {suppliers.length === 0 && <p className="text-sm text-muted-foreground text-center py-6">Belum ada supplier.</p>}
-          {suppliers.map((s) => (
+          {suppliers.length > 0 && filtered.length === 0 && (
+            <p className="text-sm text-muted-foreground text-center py-6" data-testid="supplier-search-empty">Tidak ada supplier yang cocok dengan "{search}".</p>
+          )}
+          {filtered.map((s) => (
             <div key={s.id} data-testid={`supplier-row-${s.id}`} className="flex items-center gap-3 rounded-xl border border-border bg-card p-3">
               <div className="h-9 w-9 rounded-lg bg-primary/10 text-primary grid place-items-center shrink-0">
                 <Building2 className="h-4 w-4" />
