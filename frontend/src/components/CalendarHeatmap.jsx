@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { ChevronLeft, ChevronRight, Search, X } from "lucide-react";
 import { formatCompact, formatRupiah, formatDateLong, getDayStatus, STATUS_META, toISODate, MONTH_NAMES } from "@/lib/format";
 
@@ -22,6 +23,7 @@ const amtTone = {
 
 export const CalendarHeatmap = ({ month, dailyTotals, dailyLimit, transactions = [], selectedDate, onSelectDay, onResultClick, onPrev, onNext, onToday }) => {
   const [query, setQuery] = useState("");
+  const [field, setField] = useState("all");
   const year = month.getFullYear();
   const m = month.getMonth();
   const first = new Date(year, m, 1);
@@ -31,19 +33,42 @@ export const CalendarHeatmap = ({ month, dailyTotals, dailyLimit, transactions =
 
   const q = query.trim().toLowerCase();
   const digits = q.replace(/\D/g, "");
-  const results = q
-    ? transactions.filter((t) =>
-        (t.supplier_name || "").toLowerCase().includes(q) ||
-        (t.sender_name || "").toLowerCase().includes(q) ||
-        (t.note || "").toLowerCase().includes(q) ||
-        (t.bank || "").toLowerCase().includes(q) ||
-        (t.account_number || "").includes(digits && digits.length ? digits : "\u0000") ||
-        (digits.length >= 3 && String(t.amount).includes(digits)) ||
-        t.date.includes(q) ||
-        formatDateLong(t.date).toLowerCase().includes(q)
-      ).sort((a, b) => (a.date < b.date ? 1 : -1))
-    : [];
+  const hasDigits = digits.length > 0;
+  const matchField = (t) => {
+    switch (field) {
+      case "supplier":
+        return (t.supplier_name || "").toLowerCase().includes(q);
+      case "sender":
+        return (t.sender_name || "").toLowerCase().includes(q) || (hasDigits && (t.sender_account || "").includes(digits));
+      case "bank":
+        return (t.bank || "").toLowerCase().includes(q);
+      case "account":
+        return hasDigits && (t.account_number || "").includes(digits);
+      case "note":
+        return (t.note || "").toLowerCase().includes(q);
+      case "amount":
+        return hasDigits && String(t.amount).includes(digits);
+      case "date":
+        return t.date.includes(q) || formatDateLong(t.date).toLowerCase().includes(q);
+      default:
+        return (
+          (t.supplier_name || "").toLowerCase().includes(q) ||
+          (t.sender_name || "").toLowerCase().includes(q) ||
+          (t.sender_account || "").includes(hasDigits ? digits : "\u0000") ||
+          (t.note || "").toLowerCase().includes(q) ||
+          (t.bank || "").toLowerCase().includes(q) ||
+          (t.account_number || "").includes(hasDigits ? digits : "\u0000") ||
+          (digits.length >= 3 && String(t.amount).includes(digits)) ||
+          t.date.includes(q) ||
+          formatDateLong(t.date).toLowerCase().includes(q)
+        );
+    }
+  };
+  const results = q ? transactions.filter(matchField).sort((a, b) => (a.date < b.date ? 1 : -1)) : [];
   const matchingDates = new Set(results.map((r) => r.date));
+
+  const FIELD_LABELS = { all: "Semua", supplier: "Supplier", sender: "Rekening Pengirim", bank: "Bank", account: "Rek. Supplier", note: "Catatan", amount: "Nominal", date: "Tanggal" };
+  const placeholder = field === "all" ? "Cari transaksi: supplier, rekening, catatan, nominal, tanggal..." : `Cari berdasarkan ${FIELD_LABELS[field]}...`;
 
   const cells = [];
   for (let i = 0; i < startOffset; i++) cells.push(null);
@@ -64,24 +89,43 @@ export const CalendarHeatmap = ({ month, dailyTotals, dailyLimit, transactions =
       </div>
 
       <div className="relative mb-4">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-        <Input
-          data-testid="calendar-search-input"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Cari transaksi: supplier, rekening, catatan, nominal, atau tanggal..."
-          className="pl-9 pr-9 rounded-full"
-        />
-        {query && (
-          <button data-testid="calendar-search-clear" onClick={() => setQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-            <X className="h-4 w-4" />
-          </button>
-        )}
+        <div className="flex gap-2">
+          <Select value={field} onValueChange={setField}>
+            <SelectTrigger className="w-36 sm:w-44 rounded-full shrink-0" data-testid="calendar-filter-field">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all" data-testid="filter-opt-all">Semua</SelectItem>
+              <SelectItem value="supplier" data-testid="filter-opt-supplier">Supplier</SelectItem>
+              <SelectItem value="sender" data-testid="filter-opt-sender">Rekening Pengirim</SelectItem>
+              <SelectItem value="bank" data-testid="filter-opt-bank">Bank</SelectItem>
+              <SelectItem value="account" data-testid="filter-opt-account">Rek. Supplier</SelectItem>
+              <SelectItem value="note" data-testid="filter-opt-note">Catatan</SelectItem>
+              <SelectItem value="amount" data-testid="filter-opt-amount">Nominal</SelectItem>
+              <SelectItem value="date" data-testid="filter-opt-date">Tanggal</SelectItem>
+            </SelectContent>
+          </Select>
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+            <Input
+              data-testid="calendar-search-input"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={placeholder}
+              className="pl-9 pr-9 rounded-full w-full"
+            />
+            {query && (
+              <button data-testid="calendar-search-clear" onClick={() => setQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+        </div>
 
         {q && (
           <div data-testid="calendar-search-results" className="absolute z-30 mt-2 w-full rounded-xl border border-border bg-popover shadow-lg overflow-hidden">
             <div className="px-3 py-2 text-[11px] uppercase tracking-wide text-muted-foreground border-b border-border">
-              {results.length} hasil ditemukan
+              {results.length} hasil · filter: {FIELD_LABELS[field]}
             </div>
             <div className="max-h-72 overflow-y-auto">
               {results.length === 0 && (
@@ -96,7 +140,9 @@ export const CalendarHeatmap = ({ month, dailyTotals, dailyLimit, transactions =
                 >
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-semibold truncate">{t.supplier_name}</p>
-                    <p className="text-xs text-muted-foreground truncate">{formatDateLong(t.date)}{t.note ? ` · ${t.note}` : ""}</p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {t.sender_name ? `Dari ${t.sender_name} · ` : ""}{formatDateLong(t.date)}{t.note ? ` · ${t.note}` : ""}
+                    </p>
                   </div>
                   <span className="font-mono-num font-semibold text-sm shrink-0">{formatRupiah(t.amount)}</span>
                 </button>
