@@ -27,6 +27,8 @@ export const api = {
   deleteSenderAccount: (id) => client.delete(`/sender-accounts/${id}`).then((r) => r.data),
 
   getRecommendations: () => client.get("/recommendations").then((r) => r.data),
+
+  voiceInterpret: (formData) => client.post("/voice/interpret", formData).then((r) => r.data),
 };
 
 export default client;

@@ -1,8 +1,11 @@
-from fastapi import FastAPI, APIRouter, HTTPException
+from fastapi import FastAPI, APIRouter, HTTPException, UploadFile, File, Form
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
+import re
+import json as _json
+import tempfile
 import logging
 from pathlib import Path
 from pydantic import BaseModel, Field, ConfigDict, BeforeValidator
@@ -11,6 +14,8 @@ from bson import ObjectId
 import uuid
 from datetime import datetime, timezone, date, timedelta
 from seed_data import SEED_SUPPLIERS, SEED_SENDERS
+from emergentintegrations.llm.openai import OpenAISpeechToText
+from emergentintegrations.llm.chat import LlmChat, UserMessage
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -379,6 +384,120 @@ async def recommendations(days: int = 14):
     # sort by lowest total, then earliest date; only those with room left
     result_sorted = sorted([r for r in result if r["total"] < limit], key=lambda r: (r["total"], r["date"]))
     return {"limit": limit, "suggestions": result_sorted[:5]}
+
+
+# ---------- Voice AI ----------
+EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY")
+
+DAY_ID = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"]
+
+
+async def _transcribe(upload: UploadFile) -> str:
+    suffix = os.path.splitext(upload.filename or "audio.webm")[1] or ".webm"
+    data = await upload.read()
+    path = None
+    try:
+        with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
+            tmp.write(data)
+            path = tmp.name
+        stt = OpenAISpeechToText(api_key=EMERGENT_LLM_KEY)
+        with open(path, "rb") as f:
+            resp = await stt.transcribe(file=f, model="whisper-1", language="id", response_format="json")
+        return (resp.text or "").strip()
+    finally:
+        if path and os.path.exists(path):
+            os.unlink(path)
+
+
+async def _llm_json(system: str, user: str) -> dict:
+    chat = LlmChat(api_key=EMERGENT_LLM_KEY, session_id=str(uuid.uuid4()), system_message=system).with_model("openai", "gpt-5.4")
+    resp = await chat.send_message(UserMessage(text=user))
+    txt = resp if isinstance(resp, str) else str(resp)
+    match = re.search(r"\{.*\}", txt, re.DOTALL)
+    if not match:
+        return {}
+    try:
+        return _json.loads(match.group(0))
+    except Exception:
+        return {}
+
+
+@api_router.post("/voice/interpret")
+async def voice_interpret(step: str = Form(...), audio: UploadFile = File(...), suppliers: str = Form("[]"), senders: str = Form("[]")):
+    if not EMERGENT_LLM_KEY:
+        raise HTTPException(status_code=500, detail="AI key belum dikonfigurasi")
+    transcript = await _transcribe(audio)
+    if not transcript:
+        return {"transcript": "", "value": None, "label": "", "message": "Suara tidak terdengar, coba lagi."}
+
+    today = date.today()
+    today_str = f"{DAY_ID[today.weekday()]}, {today.isoformat()}"
+
+    if step == "supplier":
+        opts = _json.loads(suppliers)
+        listing = "\n".join([f"{s['id']} | {s['name']} | alias: {s.get('alias','')}" for s in opts])
+        data = await _llm_json(
+            "Anda mencocokkan ucapan Bahasa Indonesia ke satu supplier dari daftar. Balas HANYA JSON.",
+            f"Ucapan user: \"{transcript}\".\nDaftar supplier (id | nama | alias):\n{listing}\n\nPilih supplier paling cocok berdasarkan nama atau alias. Balas JSON: {{\"id\": \"<id atau kosong>\", \"name\": \"<nama atau kosong>\"}}. Jika tidak ada yang cocok, id kosong.",
+        )
+        sid = data.get("id") or None
+        match = next((s for s in opts if s["id"] == sid), None)
+        return {"transcript": transcript, "value": sid if match else None, "label": match["name"] if match else "", "field": "supplier_id"}
+
+    if step == "sender":
+        opts = _json.loads(senders)
+        listing = "\n".join([f"{s['id']} | {s['name']} | {s.get('account_number','')}" for s in opts])
+        data = await _llm_json(
+            "Anda mencocokkan ucapan Bahasa Indonesia ke satu rekening pengirim dari daftar. Balas HANYA JSON.",
+            f"Ucapan user: \"{transcript}\".\nDaftar rekening (id | nama | nomor):\n{listing}\n\nBalas JSON: {{\"id\": \"<id atau kosong>\", \"name\": \"<nama>\"}}. Jika tidak cocok, id kosong.",
+        )
+        sid = data.get("id") or None
+        match = next((s for s in opts if s["id"] == sid), None)
+        return {"transcript": transcript, "value": sid if match else None, "label": match["name"] if match else "", "field": "sender_id"}
+
+    if step == "amount":
+        data = await _llm_json(
+            "Anda mengubah ucapan nominal uang Bahasa Indonesia menjadi angka rupiah (integer). Balas HANYA JSON.",
+            f"Ucapan user: \"{transcript}\". Contoh: 'seratus juta' -> 100000000, 'lima puluh ribu' -> 50000, '2,5 juta' -> 2500000. Balas JSON: {{\"amount\": <integer atau null>}}.",
+        )
+        amt = data.get("amount")
+        try:
+            amt = int(amt) if amt is not None else None
+        except Exception:
+            amt = None
+        return {"transcript": transcript, "value": amt, "label": f"Rp {amt:,.0f}".replace(",", ".") if amt else "", "field": "amount"}
+
+    if step == "date":
+        data = await _llm_json(
+            f"Anda mengubah ucapan tanggal Bahasa Indonesia menjadi format YYYY-MM-DD. Hari ini {today_str}. Balas HANYA JSON.",
+            f"Ucapan user: \"{transcript}\". Contoh: 'besok', 'hari ini', 'tanggal 9 september', 'lusa'. Gunakan tahun {today.year} bila tahun tidak disebut. Balas JSON: {{\"date\": \"YYYY-MM-DD\" atau null}}.",
+        )
+        d = data.get("date")
+        if d and not re.match(r"^\d{4}-\d{2}-\d{2}$", str(d)):
+            d = None
+        return {"transcript": transcript, "value": d, "label": d or "", "field": "date"}
+
+    if step == "time":
+        data = await _llm_json(
+            "Anda mengubah ucapan jam Bahasa Indonesia menjadi format 24 jam HH:MM. Balas HANYA JSON.",
+            f"Ucapan user: \"{transcript}\". Contoh: 'jam 2 siang' -> 14:00, 'setengah 9 pagi' -> 08:30, 'jam 7 malam' -> 19:00. Balas JSON: {{\"time\": \"HH:MM\" atau null}}.",
+        )
+        t = data.get("time")
+        if t and not re.match(r"^\d{2}:\d{2}$", str(t)):
+            t = None
+        return {"transcript": transcript, "value": t, "label": t or "", "field": "transfer_time"}
+
+    if step == "note_confirm":
+        data = await _llm_json(
+            "Tentukan apakah user ingin mengisi catatan. Balas HANYA JSON.",
+            f"Ucapan user: \"{transcript}\". Jika user bilang tidak/tidak usah/skip -> false. Jika ya/iya/isi -> true. Balas JSON: {{\"wants_note\": true atau false}}.",
+        )
+        return {"transcript": transcript, "value": bool(data.get("wants_note")), "label": "Ya" if data.get("wants_note") else "Tidak", "field": "wants_note"}
+
+    if step == "note":
+        return {"transcript": transcript, "value": transcript, "label": transcript, "field": "note"}
+
+    raise HTTPException(status_code=400, detail="Langkah tidak dikenal")
 
 
 # ---------- Seed ----------

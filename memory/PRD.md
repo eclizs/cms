@@ -23,7 +23,7 @@ Aplikasi untuk mencatat transaksi perbankan (transfer ke supplier dengan nominal
 - Calendar heatmap colored by load vs limit (green <50%, amber 50-90%, red >90%)
 
 ## Implemented (2026-09-08)
-- Full backend REST API (suppliers, transactions, settings, recommendations, seed)
+- AI Voice Transaction: Whisper STT + GPT-5.4 parsing (Emergent Universal Key). Guided steps supplier->sender->amount->date->time->ask note->summary. Endpoint POST /api/voice/interpret.
 - Dashboard: KPI summary, calendar heatmap, smart recommendations, day-detail panel
 - Transaction dialog with rupiah formatting, terbilang, live load-preview vs limit, inline date suggestions
 - Daily limit dialog with presets + terbilang

@@ -1,9 +1,9 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Moon, Sun, Plus, Landmark, Gauge } from "lucide-react";
+import { Moon, Sun, Plus, Landmark, Gauge, Mic } from "lucide-react";
 import { formatRupiah } from "@/lib/format";
 
-export const Header = ({ dailyLimit, onNewTransaction, onEditLimit, theme, onToggleTheme }) => {
+export const Header = ({ dailyLimit, onNewTransaction, onVoiceTransaction, onEditLimit, theme, onToggleTheme }) => {
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-3">
@@ -40,6 +40,17 @@ export const Header = ({ dailyLimit, onNewTransaction, onEditLimit, theme, onTog
             onClick={onToggleTheme}
           >
             {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+          </Button>
+
+          <Button
+            data-testid="voice-transaction-button"
+            variant="outline"
+            size="icon"
+            className="rounded-full border-primary/40 text-primary hover:bg-primary/10"
+            onClick={onVoiceTransaction}
+            title="Transaksi via suara"
+          >
+            <Mic className="h-4 w-4" />
           </Button>
 
           <Button

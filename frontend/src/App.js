@@ -15,6 +15,7 @@ import { DailyLimitDialog } from "@/components/DailyLimitDialog";
 import { TransactionDialog } from "@/components/TransactionDialog";
 import { SupplierManager } from "@/components/SupplierManager";
 import { SenderManager } from "@/components/SenderManager";
+import { VoiceTransaction } from "@/components/VoiceTransaction";
 import { DayDetailDialog } from "@/components/DayDetailDialog";
 
 function App() {
@@ -34,6 +35,7 @@ function App() {
   const [limitOpen, setLimitOpen] = useState(false);
   const [supplierOpen, setSupplierOpen] = useState(false);
   const [senderMgrOpen, setSenderMgrOpen] = useState(false);
+  const [voiceOpen, setVoiceOpen] = useState(false);
   const [trash, setTrash] = useState([]);
   const [trashOpen, setTrashOpen] = useState(false);
 
@@ -203,6 +205,19 @@ function App() {
     }
   };
 
+  const handleVoiceSubmit = async (data) => {
+    try {
+      await api.createTransaction(data);
+      toast.success("Transfer berhasil dicatat via suara");
+      const d = new Date(data.date + "T00:00:00");
+      setMonth(new Date(d.getFullYear(), d.getMonth(), 1));
+      setSelectedDate(data.date);
+      await refreshDerived();
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || "Gagal menyimpan transaksi");
+    }
+  };
+
   return (
     <div className="App min-h-screen bg-background bg-grid">
       <Header
@@ -210,6 +225,7 @@ function App() {
         theme={theme}
         onToggleTheme={toggle}
         onNewTransaction={() => openNewTransaction("")}
+        onVoiceTransaction={() => setVoiceOpen(true)}
         onEditLimit={() => setLimitOpen(true)}
       />
 
@@ -298,6 +314,14 @@ function App() {
         senders={senders}
         onCreate={handleCreateSender}
         onDelete={handleDeleteSender}
+      />
+
+      <VoiceTransaction
+        open={voiceOpen}
+        onOpenChange={setVoiceOpen}
+        suppliers={suppliers}
+        senders={senders}
+        onSubmit={handleVoiceSubmit}
       />
 
       <Toaster position="top-right" richColors />
