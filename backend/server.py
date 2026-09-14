@@ -446,14 +446,18 @@ async def voice_interpret(step: str = Form(...), audio: UploadFile = File(...), 
 
     if step == "sender":
         opts = _json.loads(senders)
-        listing = "\n".join([f"{s['id']} | {s['name']} | {s.get('account_number','')}" for s in opts])
+        listing = "\n".join([f"{i+1}. {s['name']} | {s.get('account_number','')}" for i, s in enumerate(opts)])
         data = await _llm_json(
-            "Anda mencocokkan ucapan Bahasa Indonesia ke satu rekening pengirim dari daftar. Balas HANYA JSON.",
-            f"Ucapan user: \"{transcript}\".\nDaftar rekening (id | nama | nomor):\n{listing}\n\nBalas JSON: {{\"id\": \"<id atau kosong>\", \"name\": \"<nama>\"}}. Jika tidak cocok, id kosong.",
+            "User memilih satu rekening pengirim dari daftar BERNOMOR dengan menyebut NOMOR urutannya (bisa juga menyebut namanya). Balas HANYA JSON.",
+            f"Ucapan user: \"{transcript}\".\nDaftar rekening bernomor:\n{listing}\n\nJika user menyebut angka (mis. 'satu', 'dua', '1', '2'), kembalikan angka itu. Jika menyebut nama, cari nomor yang paling cocok. Balas JSON: {{\"index\": <nomor 1-based atau null>}}.",
         )
-        sid = data.get("id") or None
-        match = next((s for s in opts if s["id"] == sid), None)
-        return {"transcript": transcript, "value": sid if match else None, "label": match["name"] if match else "", "field": "sender_id"}
+        num = data.get("index")
+        try:
+            num = int(num)
+        except Exception:
+            num = None
+        match = opts[num - 1] if (num and 1 <= num <= len(opts)) else None
+        return {"transcript": transcript, "value": match["id"] if match else None, "label": (f"{num}. {match['name']}" if match else ""), "field": "sender_id"}
 
     if step == "amount":
         data = await _llm_json(

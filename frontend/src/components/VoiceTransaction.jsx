@@ -8,7 +8,7 @@ import { toast } from "sonner";
 
 const STEPS = [
   { key: "supplier", title: "Pilih Supplier", q: "Sebutkan nama supplier tujuan transfer" },
-  { key: "sender", title: "Rekening Sumber Dana", q: "Sebutkan rekening pengirim / sumber dana" },
+  { key: "sender", title: "Rekening Sumber Dana", q: "Sebutkan NOMOR rekening sumber dana sesuai daftar di bawah" },
   { key: "amount", title: "Nominal Transfer", q: "Sebutkan nominal transfer, contoh: seratus juta" },
   { key: "date", title: "Tanggal Transfer", q: "Sebutkan tanggal transfer, contoh: besok atau tanggal 9 September" },
   { key: "time", title: "Jam Transfer", q: "Sebutkan jam transfer, contoh: jam 2 siang" },
@@ -110,6 +110,8 @@ export const VoiceTransaction = ({ open, onOpenChange, suppliers, senders, onSub
         note: collected.note || "",
       });
       handleClose(false);
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || "Gagal menyimpan transaksi");
     } finally {
       setSaving(false);
     }
@@ -135,6 +137,19 @@ export const VoiceTransaction = ({ open, onOpenChange, suppliers, senders, onSub
               <p className="text-xs uppercase tracking-wide text-muted-foreground">Langkah {idx + 1} · {step.title}</p>
               <p className="mt-1 font-heading font-semibold text-base" data-testid="voice-question">{step.q}</p>
             </div>
+
+            {step.key === "sender" && (
+              <div className="rounded-xl border border-border bg-muted/30 p-3 space-y-1.5" data-testid="voice-sender-list">
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1">Daftar Rekening (sebutkan nomornya)</p>
+                {senders.map((s, i) => (
+                  <div key={s.id} className="flex items-center gap-2 text-sm">
+                    <span className="h-5 w-5 rounded-full bg-primary text-primary-foreground grid place-items-center text-xs font-bold shrink-0">{i + 1}</span>
+                    <span className="font-semibold truncate">{s.name}</span>
+                    <span className="text-xs text-muted-foreground font-mono-num truncate">· {s.account_number}</span>
+                  </div>
+                ))}
+              </div>
+            )}
 
             <div className="flex flex-col items-center gap-3 py-2">
               {!recording && !busy && (

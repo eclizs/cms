@@ -206,16 +206,16 @@ function App() {
   };
 
   const handleVoiceSubmit = async (data) => {
-    try {
-      await api.createTransaction(data);
-      toast.success("Transfer berhasil dicatat via suara");
-      const d = new Date(data.date + "T00:00:00");
-      setMonth(new Date(d.getFullYear(), d.getMonth(), 1));
-      setSelectedDate(data.date);
-      await refreshDerived();
-    } catch (e) {
-      toast.error(e?.response?.data?.detail || "Gagal menyimpan transaksi");
-    }
+    const tx = await api.createTransaction(data);
+    toast.success("Transaksi tersimpan. Silakan periksa / edit bila perlu.");
+    const d = new Date(data.date + "T00:00:00");
+    setMonth(new Date(d.getFullYear(), d.getMonth(), 1));
+    setSelectedDate(data.date);
+    await refreshDerived();
+    // buka form edit manual berisi hasil voice transaction
+    setEditingTx(tx);
+    setTxDefaultDate("");
+    setTxOpen(true);
   };
 
   return (
