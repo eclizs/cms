@@ -32,6 +32,7 @@ function App() {
   const [txOpen, setTxOpen] = useState(false);
   const [editingTx, setEditingTx] = useState(null);
   const [txDefaultDate, setTxDefaultDate] = useState("");
+  const [txDraft, setTxDraft] = useState(null);
   const [limitOpen, setLimitOpen] = useState(false);
   const [supplierOpen, setSupplierOpen] = useState(false);
   const [senderMgrOpen, setSenderMgrOpen] = useState(false);
@@ -85,6 +86,7 @@ function App() {
       setSenders(snd);
     } catch (e) { /* keep existing lists on failure */ }
     setEditingTx(null);
+    setTxDraft(null);
     setTxDefaultDate(date);
     setDayDetailOpen(false);
     setTxOpen(true);
@@ -97,6 +99,7 @@ function App() {
       setSenders(snd);
     } catch (e) { /* keep existing lists on failure */ }
     setEditingTx(t);
+    setTxDraft(null);
     setTxDefaultDate("");
     setDayDetailOpen(false);
     setTxOpen(true);
@@ -205,15 +208,9 @@ function App() {
     }
   };
 
-  const handleVoiceSubmit = async (data) => {
-    const tx = await api.createTransaction(data);
-    toast.success("Transaksi tersimpan. Silakan periksa / edit bila perlu.");
-    const d = new Date(data.date + "T00:00:00");
-    setMonth(new Date(d.getFullYear(), d.getMonth(), 1));
-    setSelectedDate(data.date);
-    await refreshDerived();
-    // buka form edit manual berisi hasil voice transaction
-    setEditingTx(tx);
+  const handleVoiceDraft = (data) => {
+    setEditingTx(null);
+    setTxDraft(data || {});
     setTxDefaultDate("");
     setTxOpen(true);
   };
@@ -278,10 +275,11 @@ function App() {
 
       <TransactionDialog
         open={txOpen}
-        onOpenChange={setTxOpen}
+        onOpenChange={(v) => { setTxOpen(v); if (!v) { setEditingTx(null); setTxDraft(null); } }}
         suppliers={suppliers}
         senders={senders}
         editing={editingTx}
+        draft={txDraft}
         dailyTotals={dailyTotals}
         dailyLimit={dailyLimit}
         recommendations={recommendations}
@@ -321,7 +319,7 @@ function App() {
         onOpenChange={setVoiceOpen}
         suppliers={suppliers}
         senders={senders}
-        onSubmit={handleVoiceSubmit}
+        onDraft={handleVoiceDraft}
       />
 
       <Toaster position="top-right" richColors />

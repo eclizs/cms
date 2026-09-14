@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { UserPlus, AlertTriangle, CheckCircle2, Plus, X, Settings2, ChevronsUpDown, Check } from "lucide-react";
 import { formatRupiah, formatCompact, terbilang, getDayStatus } from "@/lib/format";
 
-export const TransactionDialog = ({ open, onOpenChange, suppliers, senders, editing, dailyTotals, dailyLimit, recommendations, defaultDate, onSubmit, onManageSuppliers, onCreateSender, onManageSenders }) => {
+export const TransactionDialog = ({ open, onOpenChange, suppliers, senders, editing, draft, dailyTotals, dailyLimit, recommendations, defaultDate, onSubmit, onManageSuppliers, onCreateSender, onManageSenders }) => {
   const [supplierId, setSupplierId] = useState("");
   const [supplierPickerOpen, setSupplierPickerOpen] = useState(false);
   const [senderId, setSenderId] = useState("");
@@ -36,12 +36,13 @@ export const TransactionDialog = ({ open, onOpenChange, suppliers, senders, edit
       setNote(editing.note || "");
     } else {
       const now = new Date();
-      setSupplierId("");
-      setSenderId(senders[0]?.id || "");
-      setAmount(0);
-      setTxDate(defaultDate || "");
-      setTxTime(`${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`);
-      setNote("");
+      const d = draft || {};
+      setSupplierId(d.supplier_id || "");
+      setSenderId(d.sender_id || senders[0]?.id || "");
+      setAmount(d.amount || 0);
+      setTxDate(d.date || defaultDate || "");
+      setTxTime(d.transfer_time || `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`);
+      setNote(d.note || "");
     }
   }, [open, editing, defaultDate]);
 

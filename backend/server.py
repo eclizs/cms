@@ -392,7 +392,7 @@ EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY")
 DAY_ID = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"]
 
 
-async def _transcribe(upload: UploadFile) -> str:
+async def _transcribe(upload: UploadFile, prompt: str = "") -> str:
     suffix = os.path.splitext(upload.filename or "audio.webm")[1] or ".webm"
     data = await upload.read()
     path = None
@@ -401,12 +401,18 @@ async def _transcribe(upload: UploadFile) -> str:
             tmp.write(data)
             path = tmp.name
         stt = OpenAISpeechToText(api_key=EMERGENT_LLM_KEY)
+        kwargs = dict(model="whisper-1", language="id", response_format="json")
+        if prompt:
+            kwargs["prompt"] = prompt
         with open(path, "rb") as f:
-            resp = await stt.transcribe(file=f, model="whisper-1", language="id", response_format="json")
+            resp = await stt.transcribe(file=f, **kwargs)
         return (resp.text or "").strip()
     finally:
         if path and os.path.exists(path):
             os.unlink(path)
+
+
+WHISPER_HINT = "Transaksi transfer bank. Istilah umum: supplier, rekening, rupiah, ribu, juta, miliar, tanggal, jam, pagi, siang, sore, malam, besok, lusa."
 
 
 async def _llm_json(system: str, user: str) -> dict:
@@ -426,12 +432,48 @@ async def _llm_json(system: str, user: str) -> dict:
 async def voice_interpret(step: str = Form(...), audio: UploadFile = File(...), suppliers: str = Form("[]"), senders: str = Form("[]")):
     if not EMERGENT_LLM_KEY:
         raise HTTPException(status_code=500, detail="AI key belum dikonfigurasi")
-    transcript = await _transcribe(audio)
+    transcript = await _transcribe(audio, prompt=WHISPER_HINT)
     if not transcript:
         return {"transcript": "", "value": None, "label": "", "message": "Suara tidak terdengar, coba lagi."}
 
     today = date.today()
     today_str = f"{DAY_ID[today.weekday()]}, {today.isoformat()}"
+
+    if step == "full":
+        sup_opts = _json.loads(suppliers)
+        snd_opts = _json.loads(senders)
+        sup_list = "\n".join([f"{s['id']} | {s['name']} | alias: {s.get('alias','')}" for s in sup_opts])
+        snd_list = "\n".join([f"{s['id']} | {s['name']} | {s.get('account_number','')}" for s in snd_opts])
+        data = await _llm_json(
+            f"Anda mengekstrak detail transaksi transfer dari ucapan Bahasa Indonesia menjadi JSON. Hari ini {today_str}. Balas HANYA JSON.",
+            f"Ucapan user: \"{transcript}\".\n\nDaftar SUPPLIER (id | nama | alias):\n{sup_list}\n\nDaftar REKENING PENGIRIM (id | nama | nomor):\n{snd_list}\n\n"
+            f"Ekstrak dan cocokkan. Balas JSON dengan field: {{\"supplier_id\": \"<id supplier paling cocok atau null>\", \"sender_id\": \"<id rekening pengirim atau null>\", \"amount\": <integer rupiah atau null>, \"date\": \"YYYY-MM-DD atau null\", \"time\": \"HH:MM atau null\", \"note\": \"<catatan bila disebut, selain itu string kosong>\"}}. "
+            f"Untuk nominal, ubah kata ke angka (mis. 'seratus juta'->100000000). Untuk tanggal gunakan tahun {today.year} bila tahun tidak disebut. Untuk jam gunakan format 24 jam.",
+        )
+        sid = data.get("supplier_id") or None
+        nid = data.get("sender_id") or None
+        if not any(s["id"] == sid for s in sup_opts):
+            sid = None
+        if not any(s["id"] == nid for s in snd_opts):
+            nid = None
+        amt = data.get("amount")
+        try:
+            amt = int(amt) if amt is not None else None
+        except Exception:
+            amt = None
+        d = data.get("date")
+        if d and not re.match(r"^\d{4}-\d{2}-\d{2}$", str(d)):
+            d = None
+        t = data.get("time")
+        if t and not re.match(r"^\d{2}:\d{2}$", str(t)):
+            t = None
+        return {
+            "transcript": transcript,
+            "draft": {
+                "supplier_id": sid, "sender_id": nid, "amount": amt,
+                "date": d, "transfer_time": t, "note": data.get("note") or "",
+            },
+        }
 
     if step == "supplier":
         opts = _json.loads(suppliers)
