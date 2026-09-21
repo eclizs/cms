@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Receipt, ArrowUpRight, Clock, ChevronDown, ChevronUp } from "lucide-react";
+import { Receipt, ArrowUpRight, Clock, ChevronDown, ChevronUp, FileSpreadsheet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatRupiah, formatRelativeTime, formatDateLong, toISODate } from "@/lib/format";
+import { ExportDialog } from "@/components/ExportDialog";
 
 const FILTERS = [
   { key: "today", label: "Hari Ini" },
@@ -21,6 +22,7 @@ const dateStr = (offsetDays) => {
 export const RecentSummary = ({ transactions, suppliers = [] }) => {
   const [filter, setFilter] = useState("today");
   const [visibleCount, setVisibleCount] = useState(6);
+  const [exportOpen, setExportOpen] = useState(false);
 
   useEffect(() => { setVisibleCount(6); }, [filter]);
 
@@ -58,8 +60,21 @@ export const RecentSummary = ({ transactions, suppliers = [] }) => {
             <p className="text-xs text-muted-foreground">Ringkasan transfer per periode</p>
           </div>
         </div>
-        <Badge variant="secondary" className="font-semibold shrink-0" data-testid="recent-count-badge">{filtered.length} transaksi</Badge>
+        <div className="flex items-center gap-2 shrink-0">
+          <Button
+            variant="outline"
+            size="sm"
+            className="rounded-full text-xs gap-1.5 border-emerald-500/40 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/10"
+            data-testid="export-open-btn"
+            onClick={() => setExportOpen(true)}
+          >
+            <FileSpreadsheet className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Export</span> Excel
+          </Button>
+          <Badge variant="secondary" className="font-semibold shrink-0" data-testid="recent-count-badge">{filtered.length} transaksi</Badge>
+        </div>
       </div>
+
+      <ExportDialog open={exportOpen} onOpenChange={setExportOpen} transactions={transactions} />
 
       <div className="flex flex-wrap gap-1.5 mb-4">
         {FILTERS.map((f) => (

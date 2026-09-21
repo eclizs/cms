@@ -31,8 +31,10 @@ Aplikasi untuk mencatat transaksi perbankan (transfer ke supplier dengan nominal
 - Dark/light theme toggle
 - Tested: backend 9/9 pytest pass; frontend flows verified 100%; mobile responsive (no overflow)
 
+## Implemented (2026-09-21)
+- Export Excel (openpyxl): tombol "Export Excel" di panel Ringkasan Transaksi → dialog pilih periode (Hari Ini, Kemarin, 7 Hari, Semua, Rentang Tanggal kustom) berdasarkan waktu input (created_at, timezone lokal). Endpoint GET /api/transactions/export?start&end&tz_offset. Kolom: Nama & Rek Pengirim, Nama Supplier, Rek & Bank Tujuan, Jumlah, Tanggal, Jam, Catatan, Waktu Input + baris TOTAL.
+
 ## Backlog / Next
-- P1: CSV/Excel export
 - P1: Monthly analytics chart (recharts) of load distribution
 - P2: Recurring/scheduled transfers
 - P2: Multi-account / bank balance tracking

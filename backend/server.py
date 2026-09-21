@@ -256,6 +256,83 @@ async def list_trash():
     return result
 
 
+@api_router.get("/transactions/export")
+async def export_transactions(start: str, end: str, tz_offset: int = 420):
+    from io import BytesIO
+    from fastapi.responses import StreamingResponse
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    from openpyxl.utils import get_column_letter
+
+    try:
+        start_d = date.fromisoformat(start)
+        end_d = date.fromisoformat(end)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Format tanggal harus YYYY-MM-DD")
+    if start_d > end_d:
+        raise HTTPException(status_code=400, detail="Tanggal mulai harus sebelum tanggal akhir")
+
+    local_tz = timezone(timedelta(minutes=tz_offset))
+    docs = await db.transactions.find({"deleted_at": None}, {"_id": 0}).to_list(5000)
+    rows = []
+    for d in docs:
+        try:
+            created = datetime.fromisoformat(d["created_at"]).astimezone(local_tz)
+        except Exception:
+            continue
+        if start_d <= created.date() <= end_d:
+            rows.append((created, d))
+    rows.sort(key=lambda r: r[0], reverse=True)
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Transaksi"
+    headers = ["No", "Nama Pengirim", "Rekening Pengirim", "Nama Supplier", "Rekening Tujuan", "Bank Tujuan",
+               "Jumlah Transfer (Rp)", "Tanggal Transfer", "Jam Transaksi", "Catatan", "Waktu Input"]
+    ws.append(headers)
+    head_fill = PatternFill("solid", fgColor="1E3A5F")
+    thin = Side(style="thin", color="CBD5E1")
+    border = Border(left=thin, right=thin, top=thin, bottom=thin)
+    for c in ws[1]:
+        c.font = Font(bold=True, color="FFFFFF")
+        c.fill = head_fill
+        c.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+        c.border = border
+    for i, (created, d) in enumerate(rows, start=1):
+        ws.append([
+            i, d.get("sender_name") or "", d.get("sender_account") or "", d.get("supplier_name") or "",
+            d.get("account_number") or "", d.get("bank") or "", d.get("amount") or 0,
+            d.get("date") or "", d.get("transfer_time") or "", d.get("note") or "",
+            created.strftime("%Y-%m-%d %H:%M"),
+        ])
+    for row in ws.iter_rows(min_row=2, max_row=ws.max_row):
+        for c in row:
+            c.border = border
+        row[6].number_format = '#,##0'
+        row[2].number_format = '@'
+        row[4].number_format = '@'
+    if rows:
+        total_row = ws.max_row + 1
+        ws.cell(row=total_row, column=6, value="TOTAL").font = Font(bold=True)
+        tc = ws.cell(row=total_row, column=7, value=f"=SUM(G2:G{ws.max_row})")
+        tc.font = Font(bold=True)
+        tc.number_format = '#,##0'
+    widths = [5, 22, 20, 30, 20, 16, 20, 14, 12, 30, 18]
+    for idx, w in enumerate(widths, start=1):
+        ws.column_dimensions[get_column_letter(idx)].width = w
+    ws.freeze_panes = "A2"
+
+    buf = BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    fname = f"transaksi_{start}_sd_{end}.xlsx" if start != end else f"transaksi_{start}.xlsx"
+    return StreamingResponse(
+        buf,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{fname}"', "X-Row-Count": str(len(rows))},
+    )
+
+
 @api_router.post("/transactions", response_model=Transaction)
 async def create_transaction(payload: TransactionCreate):
     supplier = await db.suppliers.find_one({"id": payload.supplier_id}, {"_id": 0})

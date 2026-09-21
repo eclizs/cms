@@ -28,6 +28,8 @@ export const api = {
 
   getRecommendations: () => client.get("/recommendations").then((r) => r.data),
 
+  exportTransactions: (params) => client.get("/transactions/export", { params, responseType: "blob" }),
+
   voiceInterpret: (formData) => client.post("/voice/interpret", formData).then((r) => r.data),
 };
 
