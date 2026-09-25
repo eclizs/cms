@@ -117,7 +117,7 @@ export const ExportDialog = ({ open, onOpenChange, transactions = [] }) => {
             <span className="font-mono-num font-bold" data-testid="export-count">{count}</span>
           </div>
           <p className="text-[11px] text-muted-foreground">
-            Kolom: Nama & Rekening Pengirim, Nama Supplier, Rekening & Bank Tujuan, Jumlah Transfer, Tanggal, Jam Transaksi, Catatan.
+            Kolom: Nama & Rekening Pengirim, Nama Supplier, Alias, Rekening & Bank Tujuan, Jumlah Transfer, Tanggal, Jam Transaksi, Catatan.
           </p>
 
           <Button className="w-full gap-2" onClick={handleExport} disabled={loading || invalid || count === 0} data-testid="export-download-btn">

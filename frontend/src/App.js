@@ -296,6 +296,7 @@ function App() {
         onCreate={handleCreateSupplier}
         onUpdate={handleUpdateSupplier}
         onDelete={handleDeleteSupplier}
+        onImported={async () => setSuppliers(await api.getSuppliers())}
       />
 
       <TrashDialog

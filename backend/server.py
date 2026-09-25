@@ -176,6 +176,78 @@ async def list_suppliers():
     return docs
 
 
+SUPPLIER_HEADERS = ["No", "Nama Supplier", "Alias", "Bank", "No. Rekening", "Kontak"]
+_HEADER_KEYS = {
+    "nama supplier": "name", "nama": "name", "name": "name", "supplier": "name",
+    "alias": "alias", "beneficiary alias": "alias",
+    "bank": "bank", "bank tujuan": "bank",
+    "no. rekening": "account_number", "no rekening": "account_number", "rekening": "account_number",
+    "nomor rekening": "account_number", "account_number": "account_number", "account number": "account_number",
+    "kontak": "contact", "contact": "contact", "kontak / sales": "contact",
+}
+
+
+@api_router.get("/suppliers/export")
+async def export_suppliers():
+    docs = await db.suppliers.find({}, {"_id": 0}).sort("name", 1).to_list(5000)
+    rows = [[i, d.get("name") or "", d.get("alias") or "", d.get("bank") or "", d.get("account_number") or "", d.get("contact") or ""]
+            for i, d in enumerate(docs, start=1)]
+    return _xlsx_response("Supplier", SUPPLIER_HEADERS, rows, [5, 36, 18, 14, 22, 26],
+                          f"supplier_{date.today().isoformat()}.xlsx", text_cols=(4,))
+
+
+@api_router.post("/suppliers/import-excel")
+async def import_suppliers_excel(file: UploadFile = File(...)):
+    from io import BytesIO
+    from openpyxl import load_workbook
+
+    if not (file.filename or "").lower().endswith((".xlsx", ".xlsm")):
+        raise HTTPException(status_code=400, detail="File harus berformat Excel (.xlsx)")
+    try:
+        wb = load_workbook(BytesIO(await file.read()), read_only=True, data_only=True)
+    except Exception:
+        raise HTTPException(status_code=400, detail="File Excel tidak dapat dibaca")
+    ws = wb.active
+    rows = list(ws.iter_rows(values_only=True))
+    if not rows:
+        raise HTTPException(status_code=400, detail="File Excel kosong")
+    col_map = {}
+    for idx, h in enumerate(rows[0]):
+        key = _HEADER_KEYS.get(str(h or "").strip().lower())
+        if key and key not in col_map.values():
+            col_map[idx] = key
+    if "name" not in col_map.values() or "account_number" not in col_map.values():
+        raise HTTPException(status_code=400, detail="Header wajib: 'Nama Supplier' dan 'No. Rekening' tidak ditemukan")
+
+    def cell(row, key):
+        for idx, k in col_map.items():
+            if k == key and idx < len(row):
+                v = row[idx]
+                if v is None:
+                    return ""
+                if isinstance(v, float) and v.is_integer():
+                    v = int(v)
+                return str(v).strip()
+        return ""
+
+    inserted, skipped, invalid = 0, 0, 0
+    for row in rows[1:]:
+        if row is None or all(v is None or str(v).strip() == "" for v in row):
+            continue
+        name, acc = cell(row, "name"), re.sub(r"\D", "", cell(row, "account_number"))
+        if not name or not acc:
+            invalid += 1
+            continue
+        if await db.suppliers.find_one({"name": name, "account_number": acc}):
+            skipped += 1
+            continue
+        sup = Supplier(name=name, alias=cell(row, "alias"), bank=cell(row, "bank") or "Lainnya",
+                       account_number=acc, contact=cell(row, "contact"))
+        await db.suppliers.insert_one(sup.model_dump())
+        inserted += 1
+    return {"inserted": inserted, "skipped": skipped, "invalid": invalid}
+
+
 @api_router.post("/suppliers", response_model=Supplier)
 async def create_supplier(payload: SupplierCreate):
     supplier = Supplier(**payload.model_dump())
@@ -256,14 +328,57 @@ async def list_trash():
     return result
 
 
-@api_router.get("/transactions/export")
-async def export_transactions(start: str, end: str, tz_offset: int = 420):
+def _xlsx_response(title: str, headers: list, rows: list, widths: list, fname: str, text_cols=(), money_col=None):
     from io import BytesIO
     from fastapi.responses import StreamingResponse
     from openpyxl import Workbook
     from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
     from openpyxl.utils import get_column_letter
 
+    wb = Workbook()
+    ws = wb.active
+    ws.title = title
+    ws.append(headers)
+    head_fill = PatternFill("solid", fgColor="1E3A5F")
+    thin = Side(style="thin", color="CBD5E1")
+    border = Border(left=thin, right=thin, top=thin, bottom=thin)
+    for c in ws[1]:
+        c.font = Font(bold=True, color="FFFFFF")
+        c.fill = head_fill
+        c.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+        c.border = border
+    for r in rows:
+        ws.append(r)
+    for row in ws.iter_rows(min_row=2, max_row=ws.max_row):
+        for c in row:
+            c.border = border
+        for tc in text_cols:
+            row[tc].number_format = '@'
+        if money_col is not None:
+            row[money_col].number_format = '#,##0'
+    if rows and money_col is not None:
+        total_row = ws.max_row + 1
+        col = get_column_letter(money_col + 1)
+        ws.cell(row=total_row, column=money_col, value="TOTAL").font = Font(bold=True)
+        tc = ws.cell(row=total_row, column=money_col + 1, value=f"=SUM({col}2:{col}{ws.max_row})")
+        tc.font = Font(bold=True)
+        tc.number_format = '#,##0'
+    for idx, w in enumerate(widths, start=1):
+        ws.column_dimensions[get_column_letter(idx)].width = w
+    ws.freeze_panes = "A2"
+
+    buf = BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    return StreamingResponse(
+        buf,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{fname}"', "X-Row-Count": str(len(rows))},
+    )
+
+
+@api_router.get("/transactions/export")
+async def export_transactions(start: str, end: str, tz_offset: int = 420):
     try:
         start_d = date.fromisoformat(start)
         end_d = date.fromisoformat(end)
@@ -274,6 +389,8 @@ async def export_transactions(start: str, end: str, tz_offset: int = 420):
 
     local_tz = timezone(timedelta(minutes=tz_offset))
     docs = await db.transactions.find({"deleted_at": None}, {"_id": 0}).to_list(5000)
+    suppliers = await db.suppliers.find({}, {"_id": 0, "id": 1, "alias": 1}).to_list(5000)
+    alias_by_id = {s["id"]: (s.get("alias") or "") for s in suppliers}
     rows = []
     for d in docs:
         try:
@@ -284,53 +401,18 @@ async def export_transactions(start: str, end: str, tz_offset: int = 420):
             rows.append((created, d))
     rows.sort(key=lambda r: r[0], reverse=True)
 
-    wb = Workbook()
-    ws = wb.active
-    ws.title = "Transaksi"
-    headers = ["No", "Nama Pengirim", "Rekening Pengirim", "Nama Supplier", "Rekening Tujuan", "Bank Tujuan",
+    headers = ["No", "Nama Pengirim", "Rekening Pengirim", "Nama Supplier", "Alias", "Rekening Tujuan", "Bank Tujuan",
                "Jumlah Transfer (Rp)", "Tanggal Transfer", "Jam Transaksi", "Catatan", "Waktu Input"]
-    ws.append(headers)
-    head_fill = PatternFill("solid", fgColor="1E3A5F")
-    thin = Side(style="thin", color="CBD5E1")
-    border = Border(left=thin, right=thin, top=thin, bottom=thin)
-    for c in ws[1]:
-        c.font = Font(bold=True, color="FFFFFF")
-        c.fill = head_fill
-        c.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
-        c.border = border
-    for i, (created, d) in enumerate(rows, start=1):
-        ws.append([
-            i, d.get("sender_name") or "", d.get("sender_account") or "", d.get("supplier_name") or "",
-            d.get("account_number") or "", d.get("bank") or "", d.get("amount") or 0,
-            d.get("date") or "", d.get("transfer_time") or "", d.get("note") or "",
-            created.strftime("%Y-%m-%d %H:%M"),
-        ])
-    for row in ws.iter_rows(min_row=2, max_row=ws.max_row):
-        for c in row:
-            c.border = border
-        row[6].number_format = '#,##0'
-        row[2].number_format = '@'
-        row[4].number_format = '@'
-    if rows:
-        total_row = ws.max_row + 1
-        ws.cell(row=total_row, column=6, value="TOTAL").font = Font(bold=True)
-        tc = ws.cell(row=total_row, column=7, value=f"=SUM(G2:G{ws.max_row})")
-        tc.font = Font(bold=True)
-        tc.number_format = '#,##0'
-    widths = [5, 22, 20, 30, 20, 16, 20, 14, 12, 30, 18]
-    for idx, w in enumerate(widths, start=1):
-        ws.column_dimensions[get_column_letter(idx)].width = w
-    ws.freeze_panes = "A2"
-
-    buf = BytesIO()
-    wb.save(buf)
-    buf.seek(0)
+    data = [
+        [i, d.get("sender_name") or "", d.get("sender_account") or "", d.get("supplier_name") or "",
+         alias_by_id.get(d.get("supplier_id"), ""), d.get("account_number") or "", d.get("bank") or "",
+         d.get("amount") or 0, d.get("date") or "", d.get("transfer_time") or "", d.get("note") or "",
+         created.strftime("%Y-%m-%d %H:%M")]
+        for i, (created, d) in enumerate(rows, start=1)
+    ]
     fname = f"transaksi_{start}_sd_{end}.xlsx" if start != end else f"transaksi_{start}.xlsx"
-    return StreamingResponse(
-        buf,
-        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition": f'attachment; filename="{fname}"', "X-Row-Count": str(len(rows))},
-    )
+    return _xlsx_response("Transaksi", headers, data, [5, 22, 20, 30, 16, 20, 16, 20, 14, 12, 30, 18], fname,
+                          text_cols=(2, 5), money_col=7)
 
 
 @api_router.post("/transactions", response_model=Transaction)

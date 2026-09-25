@@ -34,6 +34,12 @@ Aplikasi untuk mencatat transaksi perbankan (transfer ke supplier dengan nominal
 ## Implemented (2026-09-21)
 - Export Excel (openpyxl): tombol "Export Excel" di panel Ringkasan Transaksi → dialog pilih periode (Hari Ini, Kemarin, 7 Hari, Semua, Rentang Tanggal kustom) berdasarkan waktu input (created_at, timezone lokal). Endpoint GET /api/transactions/export?start&end&tz_offset. Kolom: Nama & Rek Pengirim, Nama Supplier, Rek & Bank Tujuan, Jumlah, Tanggal, Jam, Catatan, Waktu Input + baris TOTAL.
 
+## Implemented (2026-09-25)
+- Kolom "Alias" ditambahkan di export transaksi (lookup alias supplier via supplier_id).
+- Export supplier: GET /api/suppliers/export (xlsx: No, Nama Supplier, Alias, Bank, No. Rekening, Kontak).
+- Import supplier dari Excel: POST /api/suppliers/import-excel (multipart). Header fleksibel (ID/EN), wajib Nama Supplier + No. Rekening, skip duplikat (nama+rekening), rekening dibersihkan jadi digit. Tombol Export/Import di dialog Kelola Supplier.
+- Fix overflow horizontal dialog Kelola Supplier di mobile (pre-existing).
+
 ## Backlog / Next
 - P1: Monthly analytics chart (recharts) of load distribution
 - P2: Recurring/scheduled transfers

@@ -10,6 +10,8 @@ export const api = {
   createSupplier: (data) => client.post("/suppliers", data).then((r) => r.data),
   updateSupplier: (id, data) => client.put(`/suppliers/${id}`, data).then((r) => r.data),
   deleteSupplier: (id) => client.delete(`/suppliers/${id}`).then((r) => r.data),
+  exportSuppliers: () => client.get("/suppliers/export", { responseType: "blob" }),
+  importSuppliersExcel: (formData) => client.post("/suppliers/import-excel", formData).then((r) => r.data),
 
   getTransactions: () => client.get("/transactions").then((r) => r.data),
   getTrash: () => client.get("/transactions/trash").then((r) => r.data),
