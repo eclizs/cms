@@ -1,14 +1,34 @@
+import { useState, useEffect, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Wallet } from "lucide-react";
 import { formatRupiah, formatCompact, formatDateLong, getDayStatus, STATUS_META } from "@/lib/format";
 
 export const DayDetailDialog = ({ open, onOpenChange, date, transactions, dailyLimit, onAdd, onEdit, onDelete }) => {
-  const dayTx = date ? transactions.filter((t) => t.date === date) : [];
+  const [senderFilter, setSenderFilter] = useState("all");
+  useEffect(() => { setSenderFilter("all"); }, [date, open]);
+
+  const dayTx = useMemo(() => (date ? transactions.filter((t) => t.date === date) : []), [transactions, date]);
   const total = dayTx.reduce((s, t) => s + t.amount, 0);
   const status = getDayStatus(total, dailyLimit);
   const pct = Math.min((total / dailyLimit) * 100, 100);
+
+  const senderOptions = useMemo(() => {
+    const map = {};
+    for (const t of dayTx) {
+      const key = t.sender_id || (t.sender_name ? `name:${t.sender_name}` : "none");
+      if (!map[key]) map[key] = { key, label: t.sender_name || "Tanpa pengirim", count: 0, total: 0 };
+      map[key].count += 1;
+      map[key].total += t.amount;
+    }
+    return Object.values(map).sort((a, b) => a.label.localeCompare(b.label));
+  }, [dayTx]);
+
+  const senderKey = (t) => t.sender_id || (t.sender_name ? `name:${t.sender_name}` : "none");
+  const visibleTx = senderFilter === "all" ? dayTx : dayTx.filter((t) => senderKey(t) === senderFilter);
+  const visibleTotal = visibleTx.reduce((s, t) => s + t.amount, 0);
+  const activeSender = senderOptions.find((s) => s.key === senderFilter);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -31,9 +51,41 @@ export const DayDetailDialog = ({ open, onOpenChange, date, transactions, dailyL
           </div>
         </div>
 
+        {senderOptions.length > 0 && (
+          <div data-testid="day-sender-filter">
+            <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1.5 flex items-center gap-1"><Wallet className="h-3 w-3" /> Filter rekening pengirim</p>
+            <div className="flex flex-wrap gap-1.5">
+              <button
+                data-testid="day-sender-filter-all"
+                onClick={() => setSenderFilter("all")}
+                className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${senderFilter === "all" ? "border-primary bg-primary text-primary-foreground" : "border-border hover:border-primary/50 text-muted-foreground"}`}
+              >
+                Semua ({dayTx.length})
+              </button>
+              {senderOptions.map((s) => (
+                <button
+                  key={s.key}
+                  data-testid={`day-sender-filter-${s.key}`}
+                  onClick={() => setSenderFilter(s.key)}
+                  className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors max-w-full truncate ${senderFilter === s.key ? "border-primary bg-primary text-primary-foreground" : "border-border hover:border-primary/50 text-muted-foreground"}`}
+                >
+                  {s.label} ({s.count})
+                </button>
+              ))}
+            </div>
+            {activeSender && (
+              <div className="mt-2 flex items-center justify-between rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-xs" data-testid="day-sender-subtotal">
+                <span className="text-muted-foreground truncate">Subtotal dari <span className="font-semibold text-foreground">{activeSender.label}</span> · {activeSender.count} transaksi</span>
+                <span className="font-mono-num font-bold shrink-0">{formatRupiah(visibleTotal)}</span>
+              </div>
+            )}
+          </div>
+        )}
+
         <div className="space-y-2">
           {dayTx.length === 0 && <p className="text-sm text-muted-foreground text-center py-6">Belum ada transfer di tanggal ini.</p>}
-          {dayTx.map((t) => (
+          {dayTx.length > 0 && visibleTx.length === 0 && <p className="text-sm text-muted-foreground text-center py-6" data-testid="day-sender-empty">Tidak ada transfer dari pengirim ini.</p>}
+          {visibleTx.map((t) => (
             <div key={t.id} data-testid={`day-tx-${t.id}`} className="flex items-center gap-3 rounded-xl border border-border p-3">
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold truncate">{t.supplier_name}</p>

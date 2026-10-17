@@ -45,6 +45,9 @@ Aplikasi untuk mencatat transaksi perbankan (transfer ke supplier dengan nominal
 - Migrasi startup sekali-jalan (tercatat di settings.migrations): hapus sender demo ("Rekening Operasional BCA" 5210012345, "Rekening Giro Mandiri" 1230098765432) dan dedupe supplier per rekening (prioritas: punya alias > jumlah transaksi > terbaru; transaksi duplikat di-relink ke supplier yang dipertahankan).
 - Endpoint manual POST /api/suppliers/dedupe.
 
+## Implemented (2026-10-17, lanjutan)
+- Filter rekening pengirim (chip) di dialog detail transaksi per tanggal, dengan subtotal per pengirim.
+
 ## Backlog / Next
 - P1: Monthly analytics chart (recharts) of load distribution
 - P2: Recurring/scheduled transfers
