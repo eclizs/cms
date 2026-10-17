@@ -40,6 +40,11 @@ Aplikasi untuk mencatat transaksi perbankan (transfer ke supplier dengan nominal
 - Import supplier dari Excel: POST /api/suppliers/import-excel (multipart). Header fleksibel (ID/EN), wajib Nama Supplier + No. Rekening, skip duplikat (nama+rekening), rekening dibersihkan jadi digit. Tombol Export/Import di dialog Kelola Supplier.
 - Fix overflow horizontal dialog Kelola Supplier di mobile (pre-existing).
 
+## Implemented (2026-10-17)
+- Seed supplier kini cek berdasarkan nomor rekening saja (tidak lagi menambah duplikat bila nama berbeda tapi rekening sama).
+- Migrasi startup sekali-jalan (tercatat di settings.migrations): hapus sender demo ("Rekening Operasional BCA" 5210012345, "Rekening Giro Mandiri" 1230098765432) dan dedupe supplier per rekening (prioritas: punya alias > jumlah transaksi > terbaru; transaksi duplikat di-relink ke supplier yang dipertahankan).
+- Endpoint manual POST /api/suppliers/dedupe.
+
 ## Backlog / Next
 - P1: Monthly analytics chart (recharts) of load distribution
 - P2: Recurring/scheduled transfers

@@ -1,8 +1,3 @@
-SEED_SENDERS = [
-    {"name": "Rekening Operasional BCA", "account_number": "5210012345"},
-    {"name": "Rekening Giro Mandiri", "account_number": "1230098765432"},
-]
-
 SEED_SUPPLIERS = [
     {"name": "ANUGRAH ARGON MEDICA PT", "alias": "PT.AAM", "bank": "BCA", "account_number": "0513085149"},
     {"name": "BERKAH BENUA SUKSES CV", "alias": "PT.BBS", "bank": "BCA", "account_number": "0513111212"},

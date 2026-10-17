@@ -13,7 +13,7 @@ from typing import List, Optional, Annotated
 from bson import ObjectId
 import uuid
 from datetime import datetime, timezone, date, timedelta
-from seed_data import SEED_SUPPLIERS, SEED_SENDERS
+from seed_data import SEED_SUPPLIERS
 from emergentintegrations.llm.openai import OpenAISpeechToText
 from emergentintegrations.llm.chat import LlmChat, UserMessage
 
@@ -706,21 +706,71 @@ async def voice_interpret(step: str = Form(...), audio: UploadFile = File(...), 
 
 
 # ---------- Seed ----------
+DEMO_SENDERS = [
+    {"name": "Rekening Operasional BCA", "account_number": "5210012345"},
+    {"name": "Rekening Giro Mandiri", "account_number": "1230098765432"},
+]
+
+
+async def dedupe_suppliers():
+    """Keep one supplier per account number (prefer alias, then most transactions,
+    then newest) and relink transactions of the removed duplicates to the keeper."""
+    docs = await db.suppliers.find({}, {"_id": 0}).to_list(5000)
+    groups = {}
+    for d in docs:
+        acc = (d.get("account_number") or "").strip()
+        if acc:
+            groups.setdefault(acc, []).append(d)
+    removed, kept = [], []
+    for acc, items in groups.items():
+        if len(items) < 2:
+            continue
+        for it in items:
+            it["_tx"] = await db.transactions.count_documents({"supplier_id": it["id"]})
+        items.sort(key=lambda s: (bool((s.get("alias") or "").strip()), s["_tx"], s.get("created_at") or ""), reverse=True)
+        keeper, dups = items[0], items[1:]
+        for d in dups:
+            await db.transactions.update_many(
+                {"supplier_id": d["id"]},
+                {"$set": {"supplier_id": keeper["id"], "supplier_name": keeper["name"],
+                          "bank": keeper["bank"], "account_number": keeper["account_number"]}},
+            )
+            await db.suppliers.delete_one({"id": d["id"]})
+            removed.append({"name": d["name"], "account_number": acc, "merged_into": keeper["name"]})
+        kept.append({"name": keeper["name"], "alias": keeper.get("alias") or "", "account_number": acc})
+    return {"removed": removed, "kept": kept}
+
+
 async def ensure_seed_data():
-    """Idempotently make sure the real supplier directory, sender accounts and
-    settings exist. Runs on every startup so a fresh (e.g. production) database
-    is always populated after a deploy/republish."""
+    """Idempotently make sure the real supplier directory and settings exist.
+    A seed entry is skipped when any supplier already uses that account number."""
     for s in SEED_SUPPLIERS:
-        exists = await db.suppliers.find_one({"name": s["name"], "account_number": s["account_number"]})
+        exists = await db.suppliers.find_one({"account_number": s["account_number"]})
         if not exists:
             sup = Supplier(name=s["name"], alias=s.get("alias", ""), bank=s.get("bank", ""),
                            account_number=s["account_number"], contact="")
             await db.suppliers.insert_one(sup.model_dump())
-    for s in SEED_SENDERS:
-        exists = await db.sender_accounts.find_one({"name": s["name"]})
-        if not exists:
-            await db.sender_accounts.insert_one(SenderAccount(**s).model_dump())
     await get_settings_doc()
+
+
+async def run_migrations():
+    """One-time data fixes, tracked in settings.migrations so they run once per database."""
+    settings = await get_settings_doc()
+    done = set(settings.get("migrations") or [])
+    if "remove_demo_senders_v1" not in done:
+        for s in DEMO_SENDERS:
+            await db.sender_accounts.delete_many({"name": s["name"], "account_number": s["account_number"]})
+        done.add("remove_demo_senders_v1")
+    if "dedupe_suppliers_v1" not in done:
+        result = await dedupe_suppliers()
+        logging.getLogger(__name__).info("dedupe_suppliers_v1: removed %d duplicates", len(result["removed"]))
+        done.add("dedupe_suppliers_v1")
+    await db.settings.update_one({"key": "global"}, {"$set": {"migrations": sorted(done)}})
+
+
+@api_router.post("/suppliers/dedupe")
+async def dedupe_suppliers_endpoint():
+    return await dedupe_suppliers()
 
 
 @api_router.post("/seed")
@@ -756,6 +806,7 @@ logger = logging.getLogger(__name__)
 @app.on_event("startup")
 async def seed_on_startup():
     await ensure_seed_data()
+    await run_migrations()
 
 
 @app.on_event("shutdown")
